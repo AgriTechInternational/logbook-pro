@@ -191,7 +191,13 @@ export default function AnomaliesPage() {
                   </div>
                   <div>
                     {isEditing ? (
-                       <input className="financial-input py-1 text-sm font-bold w-full bg-slate-900/50" defaultValue={a.title} onBlur={e => updateAnomaly(a.id, { title: e.target.value })} autoFocus />
+                       <input 
+                         className="financial-input py-1 text-sm font-bold w-full bg-slate-900/50" 
+                         value={editDraft?.title} 
+                         onChange={e => setEditDraft({...editDraft, title: e.target.value})} 
+                         onClick={e => e.stopPropagation()}
+                         autoFocus 
+                       />
                     ) : (
                        <h3 className={`text-[15px] font-bold tracking-tight drop-shadow-sm leading-none mb-1 ${a.status === 'RESOLVED' ? 'text-slate-500' : 'text-white'}`}>{a.title}</h3>
                     )}
@@ -229,7 +235,7 @@ export default function AnomaliesPage() {
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Severity</label>
-                               <select className="financial-input w-full py-1.5 text-xs" defaultValue={editDraft?.severity} onBlur={e => setEditDraft({...editDraft, severity: e.target.value})}>
+                               <select className="financial-input w-full py-1.5 text-xs" value={editDraft?.severity} onChange={e => setEditDraft({...editDraft, severity: e.target.value})}>
                                   <option value="HIGH">HIGH</option>
                                   <option value="MEDIUM">MEDIUM</option>
                                   <option value="LOW">LOW</option>
@@ -237,22 +243,21 @@ export default function AnomaliesPage() {
                             </div>
                             <div className="space-y-1">
                                <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Status</label>
-                               <select className="financial-input w-full py-1.5 text-xs" defaultValue={editDraft?.status} onBlur={e => setEditDraft({...editDraft, status: e.target.value})}>
+                               <select className="financial-input w-full py-1.5 text-xs" value={editDraft?.status} onChange={e => setEditDraft({...editDraft, status: e.target.value})}>
                                   <option value="OPEN">OPEN</option>
                                   <option value="INVESTIGATING">INVESTIGATING</option>
                                   <option value="RESOLVED">RESOLVED</option>
-                               </select>
+                                </select>
                             </div>
                          </div>
                          <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Report Details</label>
-                            <textarea rows={3} className="financial-input w-full text-sm" defaultValue={editDraft?.description} onBlur={e => setEditDraft({...editDraft, description: e.target.value})} />
+                            <textarea rows={3} className="financial-input w-full text-sm" value={editDraft?.description} onChange={e => setEditDraft({...editDraft, description: e.target.value})} />
                          </div>
                          <div className="flex justify-end pt-2 space-x-3">
                             <button onClick={() => {setEditingId(null); setEditDraft(null);}} className="text-[10px] font-black px-4 py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors uppercase">Abort</button>
                             <button onClick={() => updateAnomaly(a.id, editDraft)} className="flex items-center space-x-2 bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded-lg hover:bg-blue-500 shadow-lg"><Check size={12}/> <span>COMMIT CHANGES</span></button>
                          </div>
-
                       </div>
                     ) : (
                       <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 shadow-inner">

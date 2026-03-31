@@ -1,19 +1,37 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
 import { BookOpen, ListTodo, ShieldAlert, Users, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase, tables } from '../lib/supabase';
 
 export default function OverviewPage() {
   const [counts, setCounts] = useState({ logs: 0, actions: 0, anomalies: 0, meetings: 0 });
 
   useEffect(() => {
-    const unsubLogs = onSnapshot(collection(db, 'logs'), s => setCounts(c => ({ ...c, logs: s.size })));
-    const unsubActions = onSnapshot(collection(db, 'actions'), s => setCounts(c => ({ ...c, actions: s.docs.filter(d => d.data().status === 'IN_PROGRESS' || d.data().status === 'TODO').length })));
-    const unsubAnomalies = onSnapshot(collection(db, 'anomalies'), s => setCounts(c => ({ ...c, anomalies: s.size })));
-    const unsubMeetings = onSnapshot(collection(db, 'meetings'), s => setCounts(c => ({ ...c, meetings: s.size })));
-    
-    return () => { unsubLogs(); unsubActions(); unsubAnomalies(); unsubMeetings(); };
+    const fetchCounts = async () => {
+      const [logs, actions, anomalies, meetings] = await Promise.all([
+        supabase.from(tables.LOGS).select('*', { count: 'exact', head: true }),
+        supabase.from(tables.ACTIONS).select('*', { count: 'exact', head: true }).eq('status', 'IN_PROGRESS'),
+        supabase.from(tables.ANOMALIES).select('*', { count: 'exact', head: true }),
+        supabase.from(tables.MEETINGS).select('*', { count: 'exact', head: true })
+      ]);
+
+      setCounts({
+        logs: logs.count || 0,
+        actions: actions.count || 0,
+        anomalies: anomalies.count || 0,
+        meetings: meetings.count || 0
+      });
+    };
+
+    fetchCounts();
+
+    const channel = supabase.channel('overview-counts')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        fetchCounts();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const navigate = useNavigate();
@@ -47,7 +65,7 @@ export default function OverviewPage() {
       <div className="mt-8 financial-card p-8 border-l-4 border-l-emerald-500 relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-400/20 transition-all duration-700 pointer-events-none -mr-10 -mt-10"></div>
         <h3 className="text-lg font-bold text-white mb-2 relative z-10 drop-shadow-sm">System Architecture Online</h3>
-        <p className="text-[15px] text-slate-400 font-medium relative z-10 leading-relaxed max-w-lg">The live-sync operations command center is running perfectly. All connected nodes are verified and encrypted.</p>
+        <p className="text-[15px] text-slate-400 font-medium relative z-10 leading-relaxed max-w-lg">The live-sync operations command center is running perfectly via Supabase. All connected nodes are verified and encrypted.</p>
         <div className="mt-6 flex items-center space-x-3 relative z-10 bg-slate-900/60 w-max px-4 py-2.5 rounded-[12px] shadow-sm border border-slate-700/50 backdrop-blur-sm">
           <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>

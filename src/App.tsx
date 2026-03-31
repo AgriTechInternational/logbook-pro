@@ -104,11 +104,17 @@ export default function App() {
 
       <header className="p-4 pt-safe sticky top-0 flex justify-between items-center z-50 border-b border-slate-800/60 backdrop-blur-xl bg-slate-950/70">
         <h1 className="text-xl font-extrabold tracking-tight text-white hidden sm:block flex-1 drop-shadow-sm">
-          AgriTech <span className="text-blue-500 font-black">Logbook</span>
+          AgriTech <span className="text-blue-500 font-black tracking-widest">Logbook</span> <span className="ml-2 text-[10px] text-slate-500 font-bold bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">v7.3.5 - UNIVERSAL EDIT</span>
         </h1>
         <h1 className="text-lg font-extrabold tracking-tight text-white sm:hidden flex-1 drop-shadow-sm">
-          Agri<span className="text-blue-500 font-black">Tech</span>
+          Agri<span className="text-blue-500 font-black">Tech</span> <span className="ml-1 text-[8px] text-slate-500 font-bold text-blue-400">v7.3.5</span>
         </h1>
+
+
+
+
+
+
         
         <div className="flex items-center space-x-3">
           <span className="text-xs font-semibold text-slate-400 hidden sm:block bg-slate-900/80 px-3 py-1.5 rounded-[10px] border border-slate-800 shadow-inner">{user.email}</span>

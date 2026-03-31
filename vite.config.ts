@@ -9,6 +9,8 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'script',
+      manifestFilename: 'manifest.json',
       includeAssets: ['vite.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'AgriTech Logbook',
@@ -17,6 +19,8 @@ export default defineConfig({
         theme_color: '#020617',
         background_color: '#020617',
         display: 'standalone',
+        scope: '/logbook-pro/',
+        start_url: '/logbook-pro/',
         icons: [
           {
             src: 'pwa-192x192.png',

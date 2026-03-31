@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { Plus, Target, Check, Trash2, Edit2, TrendingUp } from 'lucide-react';
-import { useContext } from 'react';
-import { UserContext } from '../App';
+import { useState, useEffect, useContext } from 'react';
+import { Plus, Target, Check, Trash2, TrendingUp, ChevronDown, Calendar, Edit2 } from 'lucide-react';
 
-interface Milestone { id: string; title: string; progress: number; deadline: string; createdAt: any; }
+import { UserContext } from '../App';
+import { supabase, tables } from '../lib/supabase';
+import AttachmentManager from '../components/AttachmentManager';
+
+interface Milestone { id: string; title: string; progress: number; deadline: string; created_at: string; attachments?: any[]; }
 
 export default function MilestonesPage() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
@@ -13,124 +13,231 @@ export default function MilestonesPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newProgress, setNewProgress] = useState(0);
   const [newDeadline, setNewDeadline] = useState('');
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<any>(null);
+
+  const { role } = useContext(UserContext);
+  const isSuperAdmin = role === 'SUPER_ADMIN';
 
   useEffect(() => {
-    const q = query(collection(db, 'milestones'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-      setMilestones(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Milestone[]);
-    });
+    const fetchMilestones = async () => {
+      const { data } = await supabase.from(tables.MILESTONES).select('*').order('created_at', { ascending: false });
+      if (data) setMilestones(data as Milestone[]);
+    };
+    fetchMilestones();
+
+    const channel = supabase.channel('milestones-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: tables.MILESTONES }, () => {
+        fetchMilestones();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
     const curDate = newDeadline || new Date().toISOString().split('T')[0];
-    await addDoc(collection(db, 'milestones'), { title: newTitle, progress: newProgress, deadline: curDate, createdAt: serverTimestamp() });
-    setNewTitle(''); setNewProgress(0); setNewDeadline(''); setIsAdding(false);
+    
+    setIsAdding(false);
+    const milestoneData = { title: newTitle, progress: newProgress, deadline: curDate, created_at: new Date().toISOString() };
+    setNewTitle(''); setNewDeadline(''); setNewProgress(0);
+
+    try {
+      const { error } = await supabase.from(tables.MILESTONES).insert(milestoneData);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Failed to add milestone:", err);
+      alert("⚠️ Database Sync Error: " + (err.message || "Unknown error"));
+      setIsAdding(true);
+    }
+  };
+
+  const commitUpdate = async (id: string) => {
+    if (!editDraft) return;
+    const { error } = await supabase.from(tables.MILESTONES).update({
+      title: editDraft.title,
+      deadline: editDraft.deadline,
+      progress: editDraft.progress
+    }).eq('id', id);
+    
+    if (error) alert("Failed to update milestone: " + error.message);
+    else {
+      setEditingId(null);
+      setEditDraft(null);
+    }
+  };
+
+  const toggleExpand = (id: string) => {
+    const newExpanded = new Set(expandedIds);
+    if (newExpanded.has(id)) newExpanded.delete(id);
+    else newExpanded.add(id);
+    setExpandedIds(newExpanded);
+  };
+
+  const deleteMilestone = async (id: string) => {
+    if(confirm("Permanently destruct tracking metric?")) {
+        await supabase.from(tables.MILESTONES).delete().eq('id', id);
+    }
+  };
+
+  const updateMilestoneImmediate = async (id: string, updates: any) => {
+    const { error } = await supabase.from(tables.MILESTONES).update(updates).eq('id', id);
+    if (error) alert("Failed to update: " + error.message);
   };
 
   return (
-    <div className="pb-12">
+    <div className="pb-12 animate-in text-slate-200">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-sm">Strategic Milestones</h2>
-        <button onClick={() => setIsAdding(!isAdding)} className="bg-violet-600/90 hover:bg-violet-500 text-white p-3 rounded-[16px] shadow-[0_0_20px_rgba(139,92,246,0.4)] border border-violet-500/50 transition-all"><Plus size={24} /></button>
+        <h2 className="text-2xl font-bold text-white tracking-tight flex items-center drop-shadow-sm">
+          <Target className="mr-3 text-violet-400" size={28} /> Strategic Milestones
+        </h2>
+        <button onClick={() => setIsAdding(!isAdding)} className="p-3 bg-violet-600 hover:bg-violet-500 text-white rounded-[14px] transition-all shadow-lg active:scale-95 border border-violet-400/30">
+          <Plus size={20} />
+        </button>
       </div>
 
       {isAdding && (
-         <form onSubmit={handleAdd} className="mb-8 financial-card p-4 border-l-4 border-l-violet-500 shadow-[0_0_30px_rgba(139,92,246,0.08)] animate-in">
-          <div>
-            <label className="block text-[11px] font-black text-violet-400 uppercase tracking-widest mb-2 pr-4 drop-shadow-sm">Tracking Vector</label>
-            <input className="financial-input w-full text-lg font-bold focus:border-violet-500 border-slate-700/80" placeholder="E.g. Core Deployment Phase 1..." value={newTitle} onChange={e=>setNewTitle(e.target.value)} required autoFocus />
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <input type="date" className="financial-input text-sm font-medium focus:border-violet-500 border-slate-700/80 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" value={newDeadline} onChange={e=>setNewDeadline(e.target.value)} required />
-              <div className="financial-input flex items-center bg-slate-900/40 border-slate-700/80">
-                <span className="text-slate-400 font-bold text-xs uppercase tracking-widest mr-3">Progress</span>
-                <input type="range" min="0" max="100" className="w-full accent-violet-500" value={newProgress} onChange={e=>setNewProgress(parseInt(e.target.value))} />
-                <span className="ml-3 font-bold text-white w-8 text-right">{newProgress}%</span>
+         <form onSubmit={handleAdd} className="financial-card p-6 mb-8 border-violet-500/30 animate-in slide-in-from-top-4">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Tracking Vector</label>
+              <input className="financial-input w-full" placeholder="E.g. Core Deployment Phase 1..." value={newTitle} onChange={e=>setNewTitle(e.target.value)} required autoFocus />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Protocol Deadline</label>
+                <input type="date" className="financial-input w-full [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" value={newDeadline} onChange={e=>setNewDeadline(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Current Sync: {newProgress}%</label>
+                <div className="financial-input flex items-center bg-slate-900 shadow-inner h-[42px]">
+                  <input type="range" min="0" max="100" className="w-full accent-violet-500" value={newProgress} onChange={e=>setNewProgress(parseInt(e.target.value))} />
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex justify-end pt-5 mt-5 border-t border-slate-800/80">
-            <div className="flex space-x-3 w-full md:w-auto">
-              <button type="button" onClick={() => setIsAdding(false)} className="flex-1 md:flex-none px-6 py-2.5 font-semibold text-slate-400 bg-slate-800 hover:bg-slate-700 border border-slate-700/80 rounded-xl transition-colors">Abort Sync</button>
-              <button type="submit" className="flex-1 md:flex-none px-6 py-2.5 font-bold bg-violet-600/90 hover:bg-violet-500 border border-violet-500/50 text-white rounded-xl shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-all">Establish Vector</button>
-            </div>
+          <div className="flex space-x-3 mt-8">
+            <button type="submit" className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-3.5 rounded-[12px] transition-all shadow-md active:scale-[0.98]">Establish Vector</button>
+            <button type="button" onClick={() => setIsAdding(false)} className="px-6 py-3.5 bg-slate-800 text-slate-300 font-bold rounded-[12px] hover:bg-slate-700 transition-colors">Abort Sync</button>
           </div>
         </form>
       )}
 
-      <div className="space-y-5">
-        {milestones.length === 0 && !isAdding && <div className="text-center py-16 financial-card border-dashed border-2 border-slate-800 opacity-60"><Target className="mx-auto h-12 w-12 text-slate-600 mb-4"/><p className="font-medium text-slate-500 text-lg">No tracking vectors established</p></div>}
-        {milestones.map(m => <MilestoneCard key={m.id} milestone={m} />)}
+      <div className="space-y-3">
+        {milestones.length === 0 && !isAdding && <div className="financial-card p-12 text-center text-slate-500 font-medium italic">No tracking vectors established.</div>}
+        {milestones.map((m) => {
+          const isExpanded = expandedIds.has(m.id);
+          const isEditing = editingId === m.id;
+          const isComplete = m.progress === 100;
+
+          return (
+            <div key={m.id} className={`financial-card group transition-all duration-300 ${isExpanded ? 'border-violet-500/40 shadow-violet-900/10' : 'hover:border-slate-700/80'}`}>
+              <div 
+                onClick={() => !isEditing && toggleExpand(m.id)}
+                className={`p-4 flex justify-between items-center cursor-pointer ${isExpanded ? 'border-b border-slate-800/60' : ''}`}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className={`p-2 rounded-lg border transition-colors ${isExpanded ? 'bg-violet-600/20 border-violet-500/30 text-violet-400' : 'bg-slate-900/40 border-slate-800 text-slate-500'}`}>
+                    <TrendingUp size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {isEditing ? (
+                       <input className="financial-input py-1 text-sm font-bold w-full bg-slate-900/50" value={editDraft?.title} onChange={e => setEditDraft({...editDraft, title: e.target.value})} onClick={e => e.stopPropagation()} autoFocus />
+                    ) : (
+                       <h3 className={`text-[15px] font-bold tracking-tight leading-none mb-2 ${isComplete ? 'text-emerald-400' : 'text-white'}`}>{m.title}</h3>
+                    )}
+                    <div className="w-48 h-1 bg-slate-800 rounded-full overflow-hidden shadow-inner mt-1">
+                      <div className={`h-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-violet-500'}`} style={{ width: `${(isEditing ? editDraft?.progress : m.progress)}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                   {!isEditing && (
+                     <span className={`text-[10px] font-black uppercase tracking-widest hidden sm:block ${isComplete ? 'text-emerald-500' : 'text-slate-500'}`}>
+                        {m.progress}% Trace
+                     </span>
+                   )}
+                   <div className="flex items-center space-x-2">
+                     {!isEditing && (
+                       <button onClick={(e) => { e.stopPropagation(); setEditingId(m.id); setEditDraft({...m}); setExpandedIds(prev => new Set(prev).add(m.id)); }} className="p-2 text-slate-500 hover:text-violet-400 transition-all">
+                         <Edit2 size={16} />
+                       </button>
+                     )}
+                     {isSuperAdmin && !isEditing && (
+                       <button onClick={(e) => { e.stopPropagation(); deleteMilestone(m.id); }} className="p-2 text-slate-700 hover:text-rose-500 transition-colors"><Trash2 size={16} /></button>
+                     )}
+                     <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                        <ChevronDown size={18} className="text-slate-700" />
+                     </div>
+                   </div>
+                </div>
+              </div>
+
+              {isExpanded && (
+                <div className="p-5 lg:p-6 animate-in slide-in-from-top-2">
+                  <div className="space-y-6">
+                    {isEditing ? (
+                       <div className="space-y-6">
+                          <div className="bg-slate-900/40 p-5 rounded-xl border border-slate-800/60 shadow-inner">
+                            <div className="flex justify-between items-center mb-3">
+                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Sync Controls</span>
+                               <span className="text-xs font-black text-white">{editDraft?.progress}% Vector Finalized</span>
+                            </div>
+                            <input type="range" min="0" max="100" className="w-full h-3 rounded-lg appearance-none cursor-pointer bg-slate-800 border border-slate-700/50 outline-none accent-violet-500 shadow-inner" value={editDraft?.progress} onChange={e => setEditDraft({...editDraft, progress: parseInt(e.target.value)})} />
+                          </div>
+                          <div className="bg-slate-900/40 p-5 rounded-xl border border-slate-800/60 shadow-inner">
+                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 block">Objective Deadline</label>
+                             <input type="date" className="financial-input w-full text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" value={editDraft?.deadline} onChange={e => setEditDraft({...editDraft, deadline: e.target.value})} />
+                          </div>
+                          <div className="flex justify-end pt-2 space-x-3">
+                             <button onClick={() => {setEditingId(null); setEditDraft(null);}} className="text-[10px] font-black px-4 py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors uppercase">Abort</button>
+                             <button onClick={() => commitUpdate(m.id)} className="flex items-center space-x-2 bg-violet-600 text-white text-[10px] font-black px-4 py-2 rounded-lg hover:bg-violet-500 shadow-lg"><Check size={12}/> <span>COMMIT VECTOR UPDATES</span></button>
+                          </div>
+                       </div>
+                    ) : (
+                      <>
+                        <div className="bg-slate-900/40 p-5 rounded-xl border border-slate-800/60 shadow-inner backdrop-blur-md">
+                          <div className="flex justify-between items-center mb-3">
+                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Sync Controls</span>
+                             <span className={`text-xs font-black drop-shadow-sm ${isComplete ? 'text-emerald-400' : 'text-white'}`}>{m.progress}% Vector Finalized</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" max="100" 
+                            className="w-full h-3 rounded-lg appearance-none cursor-pointer bg-slate-800 border border-slate-700/50 outline-none transition-all shadow-inner relative z-10 accent-violet-500" 
+                            value={m.progress} 
+                            onChange={e => updateMilestoneImmediate(m.id, { progress: parseInt(e.target.value) })}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 shadow-inner flex items-center justify-between">
+                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center"><Calendar size={12} className="mr-2"/> Objective Deadline</span>
+                             <span className="text-xs font-bold text-white">{m.deadline}</span>
+                          </div>
+                          <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 shadow-inner flex items-center justify-between">
+                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center"><Check size={12} className="mr-2"/> Status Vector</span>
+                             <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${isComplete ? 'bg-emerald-900/40 text-emerald-400 border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                               {isComplete ? 'FINALIZED' : 'IN TRANSIT'}
+                             </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    <AttachmentManager collectionName="milestones" docId={m.id} attachments={m.attachments} isSuperAdmin={isSuperAdmin} />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function MilestoneCard({ milestone }: { milestone: Milestone }) {
-  const { role } = useContext(UserContext);
-  const isSuperAdmin = role === 'SUPER_ADMIN';
-  const [isEditing, setIsEditing] = useState(false);
-  const [title, setTitle] = useState(milestone.title);
-  const [progress, setProgress] = useState(milestone.progress);
-  const [deadline, setDeadline] = useState(milestone.deadline);
 
-  const handleSave = async () => { await updateDoc(doc(db, 'milestones', milestone.id), { title, progress, deadline }); setIsEditing(false); };
-  const handleDelete = async () => { if(confirm("Permanently destruct tracking metric?")) deleteDoc(doc(db, 'milestones', milestone.id)); };
-
-  const isComplete = progress === 100;
-
-  return (
-    <div className={`financial-card p-5 animate-in hover:shadow-[0_8px_30px_rgba(139,92,246,0.1)] transition-all border-l-4 ${isComplete ? 'border-l-emerald-500' : 'border-l-violet-500'}`}>
-      <div className="flex justify-between items-start mb-6">
-        <div className="flex-1 mr-4">
-          {isEditing ? (
-            <input className="financial-input font-bold text-lg text-white w-full focus:border-violet-500 border-slate-700/80" value={title} onChange={e=>setTitle(e.target.value)} autoFocus />
-          ) : <h3 className={`font-extrabold text-[18px] tracking-tight leading-tight flex items-center drop-shadow-sm ${isComplete ? 'text-emerald-400' : 'text-white'}`}><TrendingUp size={18} className={`inline mr-2 mb-0.5 ${isComplete ? 'text-emerald-500' : 'text-violet-500'}`}/>{milestone.title}</h3>}
-        </div>
-        
-        <div className="flex space-x-2 shrink-0">
-          {!isEditing ? <button onClick={() => setIsEditing(true)} className="text-slate-500 hover:text-violet-400 p-2 rounded-xl hover:bg-slate-800/80 transition-colors"><Edit2 size={18}/></button>
-           : (
-             <>
-               {isSuperAdmin && <button onClick={handleDelete} className="text-rose-400 bg-rose-900/20 hover:bg-rose-900/40 p-2 rounded-xl border border-rose-500/30 shadow-sm"><Trash2 size={18}/></button>}
-               <button onClick={handleSave} className="text-emerald-400 bg-emerald-900/20 hover:bg-emerald-900/40 p-2 rounded-xl border border-emerald-500/30 shadow-sm"><Check size={18}/></button>
-             </>
-           )}
-        </div>
-      </div>
-
-      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 shadow-inner backdrop-blur-md">
-        <div className="flex justify-between items-center mb-2">
-           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Progress Trace</span>
-           <span className={`text-xs font-black drop-shadow-sm delay-100 ${isComplete ? 'text-emerald-400' : 'text-white'}`}>{progress}%</span>
-        </div>
-        <input 
-          type="range" 
-          min="0" max="100" 
-          className="w-full h-2.5 rounded-lg appearance-none cursor-pointer bg-slate-800 border border-slate-700/50 outline-none transition-all shadow-inner relative z-10" 
-          style={{
-            background: `linear-gradient(to right, ${isComplete ? '#10b981' : '#8b5cf6'} ${progress}%, #1e293b ${progress}%)`
-          }}
-          value={progress} 
-          onChange={e=>setProgress(parseInt(e.target.value))} 
-          onMouseUp={e=>updateDoc(doc(db, 'milestones', milestone.id), { progress: parseInt((e.target as HTMLInputElement).value) })}
-          onTouchEnd={e=>updateDoc(doc(db, 'milestones', milestone.id), { progress: parseInt((e.target as HTMLInputElement).value) })}
-        />
-        <style>{`.appearance-none::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: white; border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px rgba(0,0,0,0.5); }`}</style>
-      </div>
-      
-      <div className="mt-5 flex items-center justify-between">
-         <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border shadow-sm ${isComplete ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/30' : 'bg-slate-800/80 text-slate-400 border-slate-700'}`}>
-           {isComplete ? 'Vector Finalized' : 'In Transit'}
-         </span>
-         
-         <div className="flex items-center">
-            {isEditing ? (
-               <input type="date" className="financial-input text-xs py-1.5 focus:border-violet-500 border-slate-700/80 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" value={deadline} onChange={e=>setDeadline(e.target.value)} />
-            ) : <span className="text-xs font-bold text-slate-300 flex items-center bg-slate-900/50 px-3 py-1.5 rounded-[10px] border border-slate-800 shadow-sm"><Target size={12} className="mr-1.5 text-violet-400"/> Deadline: {milestone.deadline}</span>}
-         </div>
-      </div>
-    </div>
-  );
-}

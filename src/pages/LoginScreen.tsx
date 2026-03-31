@@ -95,7 +95,7 @@ export default function LoginScreen() {
           </form>
         </div>
         
-        <p className="text-center text-[10px] font-black text-slate-600 mt-8 uppercase tracking-widest">Encrypted Firebase Subsystem</p>
+        <p className="text-center text-[10px] font-black text-slate-600 mt-8 uppercase tracking-widest">Secure Cloud Proxy Subsystem</p>
       </div>
     </div>
   );

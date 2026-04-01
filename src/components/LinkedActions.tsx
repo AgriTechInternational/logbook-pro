@@ -63,6 +63,9 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
       setNewDueDate('');
       setNewReminderDays(0);
       fetchLinkedActions();
+    } else {
+      console.error('Tactical Injection Error:', error);
+      alert(`Initialization Failed: ${error.message}. Ensure you have run the migration_v737.sql script in Supabase!`);
     }
     setLoading(false);
   };
@@ -79,7 +82,8 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
 
   const updateStatus = async (id: string, currentStatus: string) => {
     const nextStatus = getNextStatus(currentStatus);
-    await supabase.from(tables.ACTIONS).update({ status: nextStatus }).eq('id', id);
+    const { error } = await supabase.from(tables.ACTIONS).update({ status: nextStatus }).eq('id', id);
+    if (error) console.error('Status Update Error:', error);
     fetchLinkedActions();
   };
 

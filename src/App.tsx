@@ -2,6 +2,7 @@ import { Routes, Route, NavLink } from 'react-router-dom';
 import { BookOpen, Users, ListTodo, AlertTriangle, LayoutDashboard, Target, Settings, CircleDashed } from 'lucide-react';
 import { useState, useEffect, createContext } from 'react';
 import { User } from '@supabase/supabase-js';
+import NotificationManager from './components/NotificationManager';
 import { supabase, tables } from './lib/supabase';
 
 export const UserContext = createContext<{ user: User | null; role: string }>({ user: null, role: 'ENGINEER' });
@@ -104,18 +105,11 @@ export default function App() {
 
       <header className="p-4 pt-safe sticky top-0 flex justify-between items-center z-50 border-b border-slate-800/60 backdrop-blur-xl bg-slate-950/70">
         <h1 className="text-xl font-extrabold tracking-tight text-white hidden sm:block flex-1 drop-shadow-sm">
-          AgriTech <span className="text-blue-500 font-black tracking-widest">Logbook</span> <span className="ml-2 text-[10px] text-slate-500 font-bold bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">v7.3.6 - OPERATIONAL STABILITY</span>
+          AgriTech <span className="text-blue-500 font-black tracking-widest">Logbook</span> <span className="ml-2 text-[10px] text-slate-500 font-bold bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">v7.3.12 - TACTICAL OBJECTIVES</span>
         </h1>
         <h1 className="text-lg font-extrabold tracking-tight text-white sm:hidden flex-1 drop-shadow-sm">
-          Agri<span className="text-blue-500 font-black">Tech</span> <span className="ml-1 text-[8px] text-slate-500 font-bold text-blue-400">v7.3.6</span>
+          Agri<span className="text-blue-500 font-black">Tech</span> <span className="ml-1 text-[8px] text-slate-500 font-bold text-blue-400">v7.3.12</span>
         </h1>
-
-
-
-
-
-
-
         
         <div className="flex items-center space-x-3">
           <span className="text-xs font-semibold text-slate-400 hidden sm:block bg-slate-900/80 px-3 py-1.5 rounded-[10px] border border-slate-800 shadow-inner">{user.email}</span>
@@ -143,6 +137,7 @@ export default function App() {
         </div>
       </main>
 
+      <NotificationManager userEmail={user?.email} />
       <nav className="fixed bottom-0 w-full bg-slate-950/80 backdrop-blur-2xl border-t border-slate-800/80 shadow-[0_-8px_30px_rgba(0,0,0,0.5)] z-50 pb-8 pt-3 rounded-t-[32px] md:rounded-none">
         <div className="max-w-4xl mx-auto flex justify-between items-center overflow-x-auto px-5 hide-scrollbar gap-1">
           <NavTab to="/" icon={<LayoutDashboard size={24} />} label="Overview" exact />

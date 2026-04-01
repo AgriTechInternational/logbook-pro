@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS public.actions (
     priority TEXT DEFAULT 'NORMAL', -- LOW, NORMAL, HIGH
     status TEXT DEFAULT 'TODO', -- TODO, IN_PROGRESS, DONE
     assigned_to TEXT DEFAULT 'All Engineers',
+    due_date DATE,
+    reminder_days INTEGER DEFAULT 0,
     created_by TEXT,
     meeting_id UUID REFERENCES public.meetings(id) ON DELETE CASCADE,
     anomaly_id UUID REFERENCES public.anomalies(id) ON DELETE CASCADE,

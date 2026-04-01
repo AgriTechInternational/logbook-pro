@@ -243,21 +243,21 @@ export default function MeetingsPage() {
               {isExpanded && (
                 <div className="p-5 lg:p-6 animate-in slide-in-from-top-2">
                   {isEditing ? (
-                    <div className="space-y-5">
+                    <div className="space-y-5 pb-20">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5 font-bold">
                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Protocol Date</label>
                           <input 
                             type="date" 
-                            className="financial-input w-full py-2 text-sm" 
+                            className="financial-input w-full py-2 text-sm font-bold" 
                             value={editDraft?.date || ''} 
                             onChange={e => setEditDraft({...editDraft, date: e.target.value})}
                           />
                         </div>
                         <div className="md:col-span-2 space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Attendees (CSV)</label>
+                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Attendees (CSV Protocol)</label>
                           <input 
-                            className="financial-input w-full py-2 text-sm" 
+                            className="financial-input w-full py-2 text-sm font-bold" 
                             value={editDraft?.attendees || ''} 
                             onChange={e => setEditDraft({...editDraft, attendees: e.target.value})}
                           />
@@ -265,34 +265,34 @@ export default function MeetingsPage() {
                         <div className="space-y-1.5">
                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Critical Agenda</label>
                           <textarea 
-                            rows={3} 
-                            className="financial-input w-full text-sm" 
+                            rows={4} 
+                            className="financial-input w-full text-sm leading-relaxed" 
                             value={editDraft?.agenda || ''} 
                             onChange={e => setEditDraft({...editDraft, agenda: e.target.value})}
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Way Forward</label>
+                          <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1">Way Forward</label>
                           <textarea 
-                            rows={3} 
-                            className="financial-input w-full text-sm" 
+                            rows={4} 
+                            className="financial-input w-full text-sm leading-relaxed border-emerald-500/20" 
                             value={editDraft?.way_forward || ''} 
                             onChange={e => setEditDraft({...editDraft, way_forward: e.target.value})}
                           />
                         </div>
                       </div>
-                      <div className="flex justify-end space-x-3 pt-2">
+                      <div className="flex justify-between items-center pt-6 space-x-3 border-t border-slate-800/60 mt-4">
                         <button 
                           onClick={() => { setEditingId(null); setEditDraft(null); }}
-                          className="px-6 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-lg hover:bg-slate-700 transition-colors"
+                          className="px-6 py-3 bg-slate-800 text-slate-400 text-[10px] font-black rounded-xl hover:bg-slate-700 transition-colors uppercase"
                         >
-                          Abort
+                          Abort Alignment
                         </button>
                         <button 
                           onClick={commitUpdate}
-                          className="bg-blue-600 text-white text-xs font-bold px-6 py-2 rounded-lg shadow-lg hover:bg-blue-500 transition-all flex items-center"
+                          className="flex-1 flex items-center justify-center bg-blue-600 text-white text-[11px] font-black px-6 py-3 rounded-xl shadow-xl hover:bg-blue-500 transition-all border border-blue-400/20 active:scale-95"
                         >
-                          <Check size={14} className="mr-2" /> Commit Alignment Changes
+                          <Check size={14} className="mr-2" /> COMMIT ALIGNMENT UPDATES
                         </button>
                       </div>
                     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, ListTodo, ClipboardCheck, ArrowRight, User } from 'lucide-react';
+import { Plus, ListTodo, ClipboardCheck, ArrowRight, User, Calendar, Bell, Clock } from 'lucide-react';
 import { supabase, tables } from '../lib/supabase';
 
 interface LinkedActionsProps {
@@ -12,6 +12,8 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
   const [actions, setActions] = useState<any[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [newAssignee, setNewAssignee] = useState('');
+  const [newDueDate, setNewDueDate] = useState('');
+  const [newReminderDays, setNewReminderDays] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -49,6 +51,8 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
       status: 'OPEN',
       priority: 'NORMAL',
       assigned_to: newAssignee || 'All Engineers',
+      due_date: newDueDate || null,
+      reminder_days: newReminderDays,
       created_by: userEmail || 'Unknown',
       [`${parentType}_id`]: parentId
     });
@@ -56,6 +60,8 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
     if (!error) {
       setNewTitle('');
       setNewAssignee('');
+      setNewDueDate('');
+      setNewReminderDays(0);
       fetchLinkedActions();
     }
     setLoading(false);
@@ -88,69 +94,118 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
     }
   };
 
+  const getUrgencyInfo = (dueDate: string | null) => {
+    if (!dueDate) return null;
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffTime = due.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return { label: 'Overdue', color: 'text-rose-500', icon: <Clock size={10} className="mr-1 text-rose-500" /> };
+    if (diffDays === 0) return { label: 'Due Today', color: 'text-rose-400', icon: <Clock size={10} className="mr-1 text-rose-400 animate-pulse" /> };
+    if (diffDays <= 2) return { label: `${diffDays}d left`, color: 'text-amber-400', icon: <Clock size={10} className="mr-1 text-amber-400" /> };
+    return { label: `${diffDays}d left`, color: 'text-slate-500', icon: <Clock size={10} className="mr-1 text-slate-500" /> };
+  };
+
   return (
     <div className="mt-6 pt-6 border-t border-slate-800/60">
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center">
           <ListTodo size={12} className="mr-2"/> Linked Tactical Objectives
         </h4>
-        <div className="flex items-center space-x-2">
-           <span className="text-[9px] font-bold text-slate-600 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800 uppercase tracking-tighter">Cycle: Open-Progress-Comp-Closed</span>
-        </div>
       </div>
 
-      <div className="space-y-2 mb-4">
-        {actions.map((action) => (
-          <div key={action.id} className="flex items-center justify-between bg-slate-950/40 p-3 rounded-xl border border-slate-800/40 hover:border-emerald-500/30 transition-all group shadow-sm">
-            <div className="flex items-center space-x-3 overflow-hidden">
-              <div className={`p-1.5 rounded-lg border transition-colors ${getStatusStyle(action.status)}`}>
-                 <ClipboardCheck size={14} />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className={`text-xs font-bold truncate ${action.status === 'CLOSED' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{action.title}</span>
-                <div className="flex items-center text-[9px] font-black text-slate-500 uppercase tracking-tighter mt-0.5">
-                   <User size={10} className="mr-1"/> {action.assigned_to}
-                   <span className="mx-1.5 opacity-20">|</span>
-                   <span className={action.status === 'CLOSED' ? '' : 'text-emerald-500/80'}>{action.status}</span>
+      <div className="space-y-2 mb-6">
+        {actions.length === 0 && <div className="text-[10px] font-bold text-slate-600 italic py-4 text-center border border-dashed border-slate-800 rounded-xl">No active tactical vectors linked to this protocol.</div>}
+        {actions.map((action) => {
+          const urgency = getUrgencyInfo(action.due_date);
+          return (
+            <div key={action.id} className="flex items-center justify-between bg-slate-950/40 p-3 rounded-xl border border-slate-800/40 hover:border-emerald-500/30 transition-all group shadow-sm">
+              <div className="flex items-center space-x-3 overflow-hidden">
+                <div className={`p-1.5 rounded-lg border transition-colors ${getStatusStyle(action.status)}`}>
+                   <ClipboardCheck size={14} />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className={`text-xs font-bold truncate ${action.status === 'CLOSED' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{action.title}</span>
+                  <div className="flex items-center flex-wrap gap-x-2 text-[9px] font-black text-slate-500 uppercase tracking-tighter mt-0.5">
+                     <span className="flex items-center"><User size={10} className="mr-1 text-slate-600"/> {action.assigned_to}</span>
+                     {action.due_date && (
+                        <>
+                          <span className="opacity-20">|</span>
+                          <span className="flex items-center"><Calendar size={10} className="mr-1 text-slate-600"/> {action.due_date}</span>
+                        </>
+                     )}
+                     {urgency && action.status !== 'CLOSED' && (
+                        <>
+                          <span className="opacity-20">|</span>
+                          <span className={`flex items-center ${urgency.color}`}>{urgency.icon} {urgency.label}</span>
+                        </>
+                     )}
+                  </div>
                 </div>
               </div>
+              <button 
+                onClick={() => updateStatus(action.id, action.status)}
+                className={`p-1.5 rounded-md transition-all ${action.status === 'CLOSED' ? 'text-slate-600 hover:text-blue-400' : 'text-slate-600 hover:text-emerald-400 hover:bg-emerald-900/20'}`}
+                title={`Move to ${getNextStatus(action.status)}`}
+              >
+                <ArrowRight size={14} />
+              </button>
             </div>
-            <button 
-              onClick={() => updateStatus(action.id, action.status)}
-              className={`p-1.5 rounded-md transition-all ${action.status === 'CLOSED' ? 'text-slate-600 hover:text-blue-400' : 'text-slate-600 hover:text-emerald-400 hover:bg-emerald-900/20'}`}
-              title={`Move to ${getNextStatus(action.status)}`}
-            >
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <form onSubmit={handleQuickAdd} className="space-y-2 bg-slate-900/40 p-3 rounded-xl border border-slate-800/40">
-        <div className="flex gap-2">
+      <form onSubmit={handleQuickAdd} className="space-y-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/40">
+        <h5 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">New Objective Injection</h5>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <input 
-            className="financial-input flex-1 py-2 text-xs placeholder:text-slate-600" 
-            placeholder="New Tactical Objective..."
+            className="financial-input w-full py-2 text-xs font-bold placeholder:text-slate-600" 
+            placeholder="Operational Objective Title..."
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
+            required
           />
-          <div className="relative group min-w-[120px]">
+          <div className="relative group">
              <User size={12} className="absolute left-2.5 top-2.5 text-slate-500" />
              <input 
-               className="financial-input w-full pl-7 py-2 text-[10px] placeholder:text-slate-600" 
-               placeholder="Actionee..."
+               className="financial-input w-full pl-8 py-2 text-xs font-bold placeholder:text-slate-600" 
+               placeholder="Primary Actionee..."
                value={newAssignee}
                onChange={(e) => setNewAssignee(e.target.value)}
              />
           </div>
-          <button 
-            type="submit"
-            className="p-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-all disabled:opacity-50"
-            disabled={!newTitle.trim() || loading}
-          >
-            <Plus size={16} />
-          </button>
+          <div className="relative group">
+             <Calendar size={12} className="absolute left-2.5 top-2.5 text-slate-500" />
+             <input 
+               type="date"
+               className="financial-input w-full pl-8 py-2 text-xs font-bold" 
+               value={newDueDate}
+               onChange={(e) => setNewDueDate(e.target.value)}
+             />
+          </div>
+          <div className="relative group">
+             <Bell size={12} className="absolute left-2.5 top-2.5 text-slate-500" />
+             <select 
+               className="financial-input w-full pl-8 py-2 text-xs font-bold" 
+               value={newReminderDays}
+               onChange={(e) => setNewReminderDays(parseInt(e.target.value))}
+             >
+                <option value={0}>Same Day Alert</option>
+                <option value={1}>1 Day Lead-time</option>
+                <option value={2}>2 Days Lead-time</option>
+                <option value={3}>3 Days Lead-time</option>
+                <option value={7}>1 Week Lead-time</option>
+             </select>
+          </div>
         </div>
+        <button 
+          type="submit"
+          className="w-full flex items-center justify-center space-x-2 py-3 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 shadow-xl transition-all disabled:opacity-50 border border-emerald-400/20 active:scale-95"
+          disabled={!newTitle.trim() || loading}
+        >
+          <Plus size={14} /> <span>Initialize Tactical Objective</span>
+        </button>
       </form>
     </div>
   );

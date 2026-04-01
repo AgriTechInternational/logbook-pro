@@ -231,32 +231,32 @@ export default function AnomaliesPage() {
                 <div className="p-5 lg:p-6 animate-in slide-in-from-top-2">
                   <div className="space-y-4">
                     {isEditing ? (
-                      <div className="space-y-4">
+                      <div className="space-y-4 pb-20">
                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Severity</label>
-                               <select className="financial-input w-full py-1.5 text-xs" value={editDraft?.severity} onChange={e => setEditDraft({...editDraft, severity: e.target.value})}>
-                                  <option value="HIGH">HIGH</option>
-                                  <option value="MEDIUM">MEDIUM</option>
-                                  <option value="LOW">LOW</option>
+                               <select className="financial-input w-full py-1.5 text-xs font-bold" value={editDraft?.severity} onChange={e => setEditDraft({...editDraft, severity: e.target.value})}>
+                                  <option value="HIGH">HIGH THREAT (CRITICAL)</option>
+                                  <option value="MEDIUM">MEDIUM ANOMALY</option>
+                                  <option value="LOW">LOW CLEARANCE</option>
                                </select>
                             </div>
                             <div className="space-y-1">
                                <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Status</label>
-                               <select className="financial-input w-full py-1.5 text-xs" value={editDraft?.status} onChange={e => setEditDraft({...editDraft, status: e.target.value})}>
-                                  <option value="OPEN">OPEN</option>
-                                  <option value="INVESTIGATING">INVESTIGATING</option>
-                                  <option value="RESOLVED">RESOLVED</option>
+                               <select className="financial-input w-full py-1.5 text-xs font-bold" value={editDraft?.status} onChange={e => setEditDraft({...editDraft, status: e.target.value})}>
+                                  <option value="OPEN">OPEN / PENDING</option>
+                                  <option value="INVESTIGATING">UNDER INVESTIGATION</option>
+                                  <option value="RESOLVED">RESOLVED / ARCHIVE</option>
                                 </select>
                             </div>
                          </div>
                          <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Report Details</label>
-                            <textarea rows={3} className="financial-input w-full text-sm" value={editDraft?.description} onChange={e => setEditDraft({...editDraft, description: e.target.value})} />
+                            <textarea rows={4} className="financial-input w-full text-sm leading-relaxed" value={editDraft?.description} onChange={e => setEditDraft({...editDraft, description: e.target.value})} />
                          </div>
-                         <div className="flex justify-end pt-2 space-x-3">
-                            <button onClick={() => {setEditingId(null); setEditDraft(null);}} className="text-[10px] font-black px-4 py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors uppercase">Abort</button>
-                            <button onClick={() => updateAnomaly(a.id, editDraft)} className="flex items-center space-x-2 bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded-lg hover:bg-blue-500 shadow-lg"><Check size={12}/> <span>COMMIT CHANGES</span></button>
+                         <div className="flex justify-between items-center pt-6 space-x-3 border-t border-slate-800/60 mt-4">
+                            <button onClick={() => {setEditingId(null); setEditDraft(null);}} className="text-[10px] font-black px-6 py-3 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors uppercase">Abort</button>
+                            <button onClick={() => updateAnomaly(a.id, editDraft)} className="flex-1 flex items-center justify-center space-x-2 bg-rose-600 text-white text-[11px] font-black px-6 py-3 rounded-xl hover:bg-rose-500 shadow-xl border border-rose-400/20 active:scale-95 transition-all"><Check size={14}/> <span>COMMIT ANOMALY UPDATES</span></button>
                          </div>
                       </div>
                     ) : (

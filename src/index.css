@@ -126,3 +126,23 @@ body {
 }
 .rich-content pre code { background-color: transparent; padding: 0; color: inherit; }
 
+/* Tables */
+.rich-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  border: 1px solid #334155;
+  background-color: rgba(15, 23, 42, 0.4);
+}
+.rich-content th {
+  background-color: rgba(30, 41, 59, 0.8);
+  padding: 0.75em 1em;
+  border: 1px solid #334155;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+.rich-content td {
+  padding: 0.75em 1em;
+  border: 1px solid #334155;
+}
+

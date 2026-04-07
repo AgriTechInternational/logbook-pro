@@ -67,7 +67,13 @@ export default function ActionsPage() {
   };
 
   const updateStatus = async (id: string, currentStatus: string) => {
-    const next = currentStatus === 'TODO' ? 'IN_PROGRESS' : currentStatus === 'IN_PROGRESS' ? 'DONE' : 'TODO';
+    const s = currentStatus?.toUpperCase();
+    let next = 'OPEN';
+    if (s === 'OPEN') next = 'RESPONDED';
+    else if (s === 'RESPONDED') next = 'COMPLETED';
+    else if (s === 'COMPLETED') next = 'CLOSED';
+    else if (s === 'CLOSED' || s === 'REJECTED') next = 'OPEN';
+    
     await supabase.from(tables.ACTIONS).update({ status: next }).eq('id', id);
   };
 
@@ -134,7 +140,7 @@ export default function ActionsPage() {
                 {/* ── Header row ──────────────────────────────────────────── */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <div className={`p-2.5 rounded-xl border shadow-sm flex-shrink-0 ${a.status === 'DONE' ? 'bg-emerald-900/30 border-emerald-500/20 text-emerald-400' : 'bg-blue-900/30 border-blue-500/20 text-blue-400'}`}>
+                    <div className={`p-2.5 rounded-xl border shadow-sm flex-shrink-0 ${a.status === 'COMPLETED' || a.status === 'CLOSED' ? 'bg-emerald-900/30 border-emerald-500/20 text-emerald-400' : 'bg-blue-900/30 border-blue-500/20 text-blue-400'}`}>
                       <ClipboardCheck size={20} />
                     </div>
                     <div className="min-w-0">
@@ -147,7 +153,7 @@ export default function ActionsPage() {
                           autoFocus
                         />
                       ) : (
-                        <h3 className={`text-lg font-extrabold tracking-tight drop-shadow-sm truncate ${a.status === 'DONE' ? 'text-slate-500 line-through' : 'text-white'}`}>{a.title}</h3>
+                        <h3 className={`text-lg font-extrabold tracking-tight drop-shadow-sm truncate ${(a.status === 'CLOSED' || a.status === 'REJECTED') ? 'text-slate-500 line-through' : 'text-white'}`}>{a.title}</h3>
                       )}
                       <div className="flex items-center space-x-3 mt-0.5">
                         <span className={`text-[9px] font-black uppercase tracking-widest ${priorityColor(isEditing ? editDraft?.priority : a.priority)}`}>
@@ -176,9 +182,11 @@ export default function ActionsPage() {
                       <button
                         onClick={() => updateStatus(a.id, a.status)}
                         className={`flex items-center px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                          a.status === 'DONE'
+                          (a.status === 'COMPLETED' || a.status === 'CLOSED')
                             ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500/50 hover:text-emerald-300'
+                            : a.status === 'REJECTED'
+                            ? 'bg-rose-900/20 text-rose-400 border border-rose-500/30'
+                            : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-blue-500/50 hover:text-blue-300'
                         }`}
                       >
                         {a.status.replace('_', ' ')} <ArrowRight size={12} className="ml-2" />
@@ -212,14 +220,14 @@ export default function ActionsPage() {
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Status</label>
                         <select
                           className="financial-input w-full py-2 text-sm font-bold"
-                          value={editDraft?.status || 'TODO'}
+                          value={editDraft?.status || 'OPEN'}
                           onChange={e => setEditDraft({ ...editDraft, status: e.target.value })}
                         >
-                          <option value="TODO">TODO / PENDING</option>
-                          <option value="IN_PROGRESS">IN PROGRESS</option>
-                          <option value="DONE">DONE / COMPLETE</option>
                           <option value="OPEN">OPEN</option>
+                          <option value="RESPONDED">RESPONDED</option>
+                          <option value="COMPLETED">COMPLETED</option>
                           <option value="CLOSED">CLOSED</option>
+                          <option value="REJECTED">REJECTED</option>
                         </select>
                       </div>
                       <div className="md:col-span-2 space-y-1.5">

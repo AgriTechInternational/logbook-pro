@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Bold, Italic, Underline, Strikethrough, Highlighter, RemoveFormatting, List, ListOrdered, Heading1, Heading2, Heading3, Quote, Code, AlignLeft, AlignCenter, Undo, Redo, Link as LinkIcon } from 'lucide-react';
+import { Bold, Italic, Underline, Strikethrough, Highlighter, RemoveFormatting, List, ListOrdered, Heading1, Heading2, Heading3, Quote, Code, AlignLeft, AlignCenter, Undo, Redo, Link as LinkIcon, Table } from 'lucide-react';
 
 // ── Word vocabulary (same as SmartTextarea) ──────────────────────────────
 const DOMAIN_WORDS = [
@@ -104,6 +104,33 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
     editorRef.current?.focus();
     // Default formatBlock or toggle
     document.execCommand('formatBlock', false, tag);
+    updateActiveFormats();
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
+  };
+
+  const insertTable = () => {
+    editorRef.current?.focus();
+    const tableHTML = `
+      <table class="w-full text-left border-collapse border border-slate-700/50 my-2">
+        <thead>
+          <tr class="bg-slate-800/60 text-slate-300">
+            <th class="border border-slate-700/50 px-3 py-2">Header 1</th>
+            <th class="border border-slate-700/50 px-3 py-2">Header 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border border-slate-700/50 px-3 py-2">Data</td>
+            <td class="border border-slate-700/50 px-3 py-2">Data</td>
+          </tr>
+          <tr>
+            <td class="border border-slate-700/50 px-3 py-2">Data</td>
+            <td class="border border-slate-700/50 px-3 py-2">Data</td>
+          </tr>
+        </tbody>
+      </table><p><br/></p>
+    `;
+    document.execCommand('insertHTML', false, tableHTML.trim());
     updateActiveFormats();
     if (editorRef.current) onChange(editorRef.current.innerHTML);
   };
@@ -235,9 +262,10 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
         <ToolBtn title="Align Center" active={activeFormats.alignCenter} onClick={() => execCmd('justifyCenter')}><AlignCenter size={13} /></ToolBtn>
         <div className="w-px h-4 bg-slate-700/80 mx-0.5 flex-shrink-0" />
 
-        {/* Extras: Quote & Code & Clear */}
+        {/* Extras: Quote & Code, Table & Clear */}
         <ToolBtn title="Blockquote" active={activeFormats.quote} onClick={() => execBlock('BLOCKQUOTE')}><Quote size={13} /></ToolBtn>
         <ToolBtn title="Code Block" active={activeFormats.code} onClick={() => execBlock('PRE')}><Code size={13} /></ToolBtn>
+        <ToolBtn title="Insert Table" active={false} onClick={insertTable}><Table size={13} /></ToolBtn>
         <ToolBtn title="Clear formatting" active={false} onClick={() => execCmd('removeFormat')}><RemoveFormatting size={13} /></ToolBtn>
 
         <div className="ml-auto text-[9px] text-slate-500 font-black uppercase tracking-widest hidden sm:block pl-2 shrink-0">

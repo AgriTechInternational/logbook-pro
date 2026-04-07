@@ -77,9 +77,11 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
   const getNextStatus = (current: string) => {
     const s = current?.toUpperCase();
     switch (s) {
-      case 'OPEN': return 'IN_PROGRESS';
-      case 'IN_PROGRESS': return 'COMPLETED';
+      case 'OPEN': return 'RESPONDED';
+      case 'RESPONDED': return 'COMPLETED';
       case 'COMPLETED': return 'CLOSED';
+      case 'CLOSED':
+      case 'REJECTED': return 'OPEN';
       default: return 'OPEN';
     }
   };
@@ -119,9 +121,10 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
   const getStatusStyle = (status: string) => {
     const s = status?.toUpperCase();
     switch (s) {
-      case 'CLOSED': return 'bg-slate-900 border-slate-800 text-slate-500 line-through';
+      case 'CLOSED':
+      case 'REJECTED': return 'bg-slate-900 border-slate-800 text-slate-500 line-through';
       case 'COMPLETED': return 'bg-emerald-900/20 border-emerald-500/20 text-emerald-400';
-      case 'IN_PROGRESS': return 'bg-amber-900/20 border-amber-500/20 text-amber-400';
+      case 'RESPONDED': return 'bg-amber-900/20 border-amber-500/20 text-amber-400';
       case 'OPEN': return 'bg-blue-900/20 border-blue-500/20 text-blue-400';
       default: return 'bg-slate-900 border-slate-800 text-slate-400';
     }
@@ -182,9 +185,10 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
                       onChange={e => setEditDraft({...editDraft, status: e.target.value})}
                     >
                       <option value="OPEN">OPEN</option>
-                      <option value="IN_PROGRESS">IN PROGRESS</option>
+                      <option value="RESPONDED">RESPONDED</option>
                       <option value="COMPLETED">COMPLETED</option>
                       <option value="CLOSED">CLOSED</option>
+                      <option value="REJECTED">REJECTED</option>
                     </select>
                   </div>
                   <div className="flex justify-end space-x-2 pt-1">
@@ -199,7 +203,7 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
                        <ClipboardCheck size={14} />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className={`text-xs font-bold truncate ${action.status === 'CLOSED' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{action.title}</span>
+                      <span className={`text-xs font-bold truncate ${(action.status === 'CLOSED' || action.status === 'REJECTED') ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{action.title}</span>
                       <div className="flex items-center flex-wrap gap-x-2 text-[9px] font-black text-slate-500 uppercase tracking-tighter mt-0.5">
                          <span className="flex items-center"><User size={10} className="mr-1 text-slate-600"/> {action.assigned_to}</span>
                          {action.due_date && (
@@ -208,7 +212,7 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
                               <span className="flex items-center"><Calendar size={10} className="mr-1 text-slate-600"/> {action.due_date}</span>
                             </>
                          )}
-                         {urgency && action.status !== 'CLOSED' && (
+                         {urgency && action.status !== 'CLOSED' && action.status !== 'REJECTED' && (
                             <>
                               <span className="opacity-20">|</span>
                               <span className={`flex items-center ${urgency.color}`}>{urgency.icon} {urgency.label}</span>
@@ -227,7 +231,7 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
                     </button>
                     <button 
                       onClick={() => updateStatus(action.id, action.status)}
-                      className={`p-1.5 rounded-md transition-all ${action.status === 'CLOSED' ? 'text-slate-600 hover:text-blue-400' : 'text-slate-600 hover:text-emerald-400 hover:bg-emerald-900/20'}`}
+                      className={`p-1.5 rounded-md transition-all ${(action.status === 'CLOSED' || action.status === 'REJECTED') ? 'text-slate-600 hover:text-blue-400' : 'text-slate-600 hover:text-emerald-400 hover:bg-emerald-900/20'}`}
                       title={`Move to ${getNextStatus(action.status)}`}
                     >
                       <ArrowRight size={14} />

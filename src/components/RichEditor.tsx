@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Bold, Italic, Underline, Strikethrough, Highlighter, RemoveFormatting } from 'lucide-react';
+import { Bold, Italic, Underline, Strikethrough, Highlighter, RemoveFormatting, List, ListOrdered, Heading1, Heading2, Heading3, Quote, Code, AlignLeft, AlignCenter, Undo, Redo, Link as LinkIcon } from 'lucide-react';
 
 // ── Word vocabulary (same as SmartTextarea) ──────────────────────────────
 const DOMAIN_WORDS = [
@@ -69,7 +69,10 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
   const [activeIdx, setActiveIdx]       = useState(0);
   const [showSugg, setShowSugg]         = useState(false);
   const [wordHistory]                   = useState<string[]>(getWordHistory);
-  const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false, underline: false, strikeThrough: false });
+  const [activeFormats, setActiveFormats] = useState({ 
+    bold: false, italic: false, underline: false, strikeThrough: false,
+    ul: false, ol: false, h1: false, h2: false, h3: false, quote: false, code: false, alignLeft: true, alignCenter: false
+  });
 
   // Initialise HTML content once
   useEffect(() => {
@@ -79,12 +82,35 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
 
   // Track cursor to update toolbar active state
   const updateActiveFormats = () => {
+    const formatBlock = document.queryCommandValue('formatBlock') || '';
     setActiveFormats({
       bold:         document.queryCommandState('bold'),
       italic:       document.queryCommandState('italic'),
       underline:    document.queryCommandState('underline'),
       strikeThrough: document.queryCommandState('strikeThrough'),
+      ul:           document.queryCommandState('insertUnorderedList'),
+      ol:           document.queryCommandState('insertOrderedList'),
+      alignCenter:  document.queryCommandState('justifyCenter'),
+      alignLeft:    document.queryCommandState('justifyLeft') || !document.queryCommandState('justifyCenter'),
+      h1:           formatBlock.includes('h1'),
+      h2:           formatBlock.includes('h2'),
+      h3:           formatBlock.includes('h3'),
+      quote:        formatBlock.includes('blockquote'),
+      code:         formatBlock.includes('pre') || formatBlock.includes('code'),
     });
+  };
+
+  const execBlock = (tag: string) => {
+    editorRef.current?.focus();
+    // Default formatBlock or toggle
+    document.execCommand('formatBlock', false, tag);
+    updateActiveFormats();
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
+  };
+
+  const handleLink = () => {
+    const url = prompt('Enter link URL:');
+    if (url) execCmd('createLink', url);
   };
 
   const execCmd = (cmd: string, value?: string) => {
@@ -178,40 +204,43 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
   return (
     <div className="w-full flex flex-col gap-0">
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1 px-3 py-1.5 bg-slate-800/80 border border-slate-700/60 border-b-0 rounded-t-xl">
-        <ToolBtn title="Bold (Ctrl+B)"      active={activeFormats.bold}         onClick={() => execCmd('bold')}>
-          <Bold size={13} />
-        </ToolBtn>
-        <ToolBtn title="Italic (Ctrl+I)"    active={activeFormats.italic}       onClick={() => execCmd('italic')}>
-          <Italic size={13} />
-        </ToolBtn>
-        <ToolBtn title="Underline (Ctrl+U)" active={activeFormats.underline}    onClick={() => execCmd('underline')}>
-          <Underline size={13} />
-        </ToolBtn>
-        <ToolBtn title="Strikethrough"      active={activeFormats.strikeThrough} onClick={() => execCmd('strikeThrough')}>
-          <Strikethrough size={13} />
-        </ToolBtn>
+      <div className="flex items-center gap-1 px-2 py-1.5 bg-slate-800/90 border border-slate-700/60 border-b-0 rounded-t-xl overflow-x-auto flex-nowrap scrollbar-hide">
+        {/* Undo / Redo */}
+        <ToolBtn title="Undo (Ctrl+Z)" active={false} onClick={() => execCmd('undo')}><Undo size={13} /></ToolBtn>
+        <ToolBtn title="Redo (Ctrl+Y)" active={false} onClick={() => execCmd('redo')}><Redo size={13} /></ToolBtn>
+        <div className="w-px h-4 bg-slate-700/80 mx-0.5 flex-shrink-0" />
 
-        <div className="w-px h-4 bg-slate-700 mx-1" />
+        {/* Headings */}
+        <ToolBtn title="Heading 1" active={activeFormats.h1} onClick={() => execBlock('H1')}><Heading1 size={13} /></ToolBtn>
+        <ToolBtn title="Heading 2" active={activeFormats.h2} onClick={() => execBlock('H2')}><Heading2 size={13} /></ToolBtn>
+        <ToolBtn title="Heading 3" active={activeFormats.h3} onClick={() => execBlock('H3')}><Heading3 size={13} /></ToolBtn>
+        <div className="w-px h-4 bg-slate-700/80 mx-0.5 flex-shrink-0" />
 
-        {/* Highlight */}
-        <button
-          type="button"
-          title="Highlight (Ctrl+H)"
-          onMouseDown={e => { e.preventDefault(); applyHighlight(); }}
-          className="p-1.5 rounded-lg transition-colors hover:bg-yellow-400/20 text-yellow-400"
-        >
-          <Highlighter size={13} />
-        </button>
+        {/* Basic formatting */}
+        <ToolBtn title="Bold (Ctrl+B)" active={activeFormats.bold} onClick={() => execCmd('bold')}><Bold size={13} /></ToolBtn>
+        <ToolBtn title="Italic (Ctrl+I)" active={activeFormats.italic} onClick={() => execCmd('italic')}><Italic size={13} /></ToolBtn>
+        <ToolBtn title="Underline (Ctrl+U)" active={activeFormats.underline} onClick={() => execCmd('underline')}><Underline size={13} /></ToolBtn>
+        <ToolBtn title="Strikethrough" active={activeFormats.strikeThrough} onClick={() => execCmd('strikeThrough')}><Strikethrough size={13} /></ToolBtn>
+        <div className="w-px h-4 bg-slate-700/80 mx-0.5 flex-shrink-0" />
 
-        <div className="w-px h-4 bg-slate-700 mx-1" />
+        {/* Highlight & Link */}
+        <button type="button" title="Highlight (Ctrl+H)" onMouseDown={e => { e.preventDefault(); applyHighlight(); }} className="p-1.5 rounded-lg transition-colors hover:bg-yellow-400/20 text-yellow-400 shrink-0"><Highlighter size={13} /></button>
+        <ToolBtn title="Insert Link" active={false} onClick={handleLink}><LinkIcon size={13} /></ToolBtn>
+        <div className="w-px h-4 bg-slate-700/80 mx-0.5 flex-shrink-0" />
 
-        {/* Clear formatting */}
-        <ToolBtn title="Clear formatting" active={false} onClick={() => execCmd('removeFormat')}>
-          <RemoveFormatting size={13} />
-        </ToolBtn>
+        {/* Lists & Alignment */}
+        <ToolBtn title="Bullet List" active={activeFormats.ul} onClick={() => execCmd('insertUnorderedList')}><List size={13} /></ToolBtn>
+        <ToolBtn title="Numbered List" active={activeFormats.ol} onClick={() => execCmd('insertOrderedList')}><ListOrdered size={13} /></ToolBtn>
+        <ToolBtn title="Align Left" active={activeFormats.alignLeft} onClick={() => execCmd('justifyLeft')}><AlignLeft size={13} /></ToolBtn>
+        <ToolBtn title="Align Center" active={activeFormats.alignCenter} onClick={() => execCmd('justifyCenter')}><AlignCenter size={13} /></ToolBtn>
+        <div className="w-px h-4 bg-slate-700/80 mx-0.5 flex-shrink-0" />
 
-        <div className="ml-auto text-[9px] text-slate-600 font-black uppercase tracking-widest hidden md:block">
+        {/* Extras: Quote & Code & Clear */}
+        <ToolBtn title="Blockquote" active={activeFormats.quote} onClick={() => execBlock('BLOCKQUOTE')}><Quote size={13} /></ToolBtn>
+        <ToolBtn title="Code Block" active={activeFormats.code} onClick={() => execBlock('PRE')}><Code size={13} /></ToolBtn>
+        <ToolBtn title="Clear formatting" active={false} onClick={() => execCmd('removeFormat')}><RemoveFormatting size={13} /></ToolBtn>
+
+        <div className="ml-auto text-[9px] text-slate-500 font-black uppercase tracking-widest hidden sm:block pl-2 shrink-0">
           Esc = abort
         </div>
       </div>

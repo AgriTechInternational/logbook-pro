@@ -6,6 +6,7 @@ import { Plus, AlertTriangle, ShieldAlert, Trash2, ChevronDown, Check, Edit2 } f
 import { UserContext } from '../App';
 import { supabase, tables } from '../lib/supabase';
 import AttachmentManager from '../components/AttachmentManager';
+import RichEditor from '../components/RichEditor';
 import LinkedActions from '../components/LinkedActions';
 
 
@@ -145,7 +146,7 @@ export default function AnomaliesPage() {
             </div>
             <div className="md:col-span-2 space-y-2">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Intelligence Report</label>
-              <textarea rows={2} className="financial-input w-full resize-none" placeholder="Detailed observations..." value={newDescription} onChange={e => setNewDescription(e.target.value)} />
+              <RichEditor value={newDescription} onChange={setNewDescription} placeholder="Detailed observations..." minRows={2} />
             </div>
 
             {/* Proactive Action Row */}
@@ -252,7 +253,7 @@ export default function AnomaliesPage() {
                          </div>
                          <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Report Details</label>
-                            <textarea rows={4} className="financial-input w-full text-sm leading-relaxed" value={editDraft?.description} onChange={e => setEditDraft({...editDraft, description: e.target.value})} />
+                            <RichEditor value={editDraft?.description || ""} onChange={(v: string) => setEditDraft({...editDraft, description: v})} onEscape={() => { setEditingId(null); setEditDraft(null); }} minRows={4} />
                          </div>
                          <div className="flex justify-between items-center pt-6 space-x-3 border-t border-slate-800/60 mt-4">
                             <button onClick={() => {setEditingId(null); setEditDraft(null);}} className="text-[10px] font-black px-6 py-3 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors uppercase">Abort</button>
@@ -262,7 +263,7 @@ export default function AnomaliesPage() {
                     ) : (
                       <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 shadow-inner">
                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center">Intelligence Summary</p>
-                         <p className="text-sm text-slate-300 leading-relaxed font-medium">{a.description}</p>
+                         <div className="text-sm text-slate-300 leading-relaxed font-medium rich-content" dangerouslySetInnerHTML={{ __html: a.description }} />
                       </div>
                     )}
 

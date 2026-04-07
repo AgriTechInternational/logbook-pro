@@ -5,6 +5,7 @@ import { Plus, Users, Calendar, User, Trash2, FileText, ArrowRightCircle, Check,
 import { UserContext } from '../App';
 import { supabase, tables } from '../lib/supabase';
 import AttachmentManager from '../components/AttachmentManager';
+import RichEditor from '../components/RichEditor';
 import LinkedActions from '../components/LinkedActions';
 
 
@@ -147,11 +148,11 @@ export default function MeetingsPage() {
             </div>
             <div className="md:col-span-1 space-y-2">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Critical Agenda</label>
-              <textarea rows={4} className="financial-input w-full resize-none" placeholder="Primary objectives..." value={newAgenda} onChange={e => setNewAgenda(e.target.value)} />
+              <RichEditor value={newAgenda} onChange={setNewAgenda} placeholder="Primary objectives..." minRows={4} />
             </div>
             <div className="md:col-span-1 space-y-2">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Way Forward</label>
-              <textarea rows={4} className="financial-input w-full resize-none" placeholder="Next actionable steps..." value={newWayForward} onChange={e => setNewWayForward(e.target.value)} />
+              <RichEditor value={newWayForward} onChange={setNewWayForward} placeholder="Next actionable steps..." minRows={4} />
             </div>
 
             {/* Proactive Action Row */}
@@ -264,21 +265,11 @@ export default function MeetingsPage() {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Critical Agenda</label>
-                          <textarea 
-                            rows={4} 
-                            className="financial-input w-full text-sm leading-relaxed" 
-                            value={editDraft?.agenda || ''} 
-                            onChange={e => setEditDraft({...editDraft, agenda: e.target.value})}
-                          />
+                          <RichEditor value={editDraft?.agenda || ""} onChange={(v: string) => setEditDraft({...editDraft, agenda: v})} onEscape={() => { setEditingId(null); setEditDraft(null); }} minRows={4} />
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1">Way Forward</label>
-                          <textarea 
-                            rows={4} 
-                            className="financial-input w-full text-sm leading-relaxed border-emerald-500/20" 
-                            value={editDraft?.way_forward || ''} 
-                            onChange={e => setEditDraft({...editDraft, way_forward: e.target.value})}
-                          />
+                          <RichEditor value={editDraft?.way_forward || ""} onChange={(v: string) => setEditDraft({...editDraft, way_forward: v})} onEscape={() => { setEditingId(null); setEditDraft(null); }} minRows={4} />
                         </div>
                       </div>
                       <div className="flex justify-between items-center pt-6 space-x-3 border-t border-slate-800/60 mt-4">
@@ -301,11 +292,11 @@ export default function MeetingsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
                           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center"><FileText size={12} className="mr-2"/> Briefing Agenda</p>
-                          <p className="text-sm text-slate-300 leading-relaxed font-medium bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 shadow-inner">{m.agenda}</p>
+                          <div className="text-sm text-slate-300 leading-relaxed font-medium bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 shadow-inner rich-content" dangerouslySetInnerHTML={{ __html: m.agenda }} />
                         </div>
                         <div className="space-y-3">
                           <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center"><ArrowRightCircle size={12} className="mr-2"/> Way Forward</p>
-                          <p className="text-sm text-emerald-100/80 leading-relaxed font-medium bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20 shadow-inner">{m.way_forward}</p>
+                          <div className="text-sm text-emerald-100/80 leading-relaxed font-medium bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20 shadow-inner rich-content" dangerouslySetInnerHTML={{ __html: m.way_forward }} />
                         </div>
                       </div>
 

@@ -4,6 +4,7 @@ import { Plus, BookOpen, FileText, Trash2, ChevronDown, Calendar, Edit2, Check }
 import { UserContext } from '../App';
 import { supabase, tables } from '../lib/supabase';
 import AttachmentManager from '../components/AttachmentManager';
+import RichEditor from '../components/RichEditor';
 
 interface Log { id: string; content: string; created_at: string; date?: string; title?: string; }
 
@@ -105,9 +106,9 @@ export default function LogsPage() {
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Log Entry Title</label>
               <input className="financial-input w-full" placeholder="Project Alpha Sync..." value={newTitle} onChange={e => setNewTitle(e.target.value)} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 flex-grow">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Encrypted Payload</label>
-              <textarea className="financial-input w-full resize-none leading-relaxed" rows={5} placeholder="Document operational footprint..." value={newLog} onChange={e=>setNewLog(e.target.value)} required autoFocus />
+              <RichEditor value={newLog} onChange={setNewLog} placeholder="Document operational footprint..." minRows={5} />
             </div>
           </div>
           <div className="flex space-x-3 mt-8">
@@ -171,7 +172,7 @@ export default function LogsPage() {
                        <div className="space-y-4">
                           <div className="space-y-1">
                              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Log Content</label>
-                             <textarea rows={6} className="financial-input w-full text-sm leading-relaxed" value={editDraft?.content} onChange={e => setEditDraft({...editDraft, content: e.target.value})} />
+                             <RichEditor value={editDraft?.content || ""} onChange={(v: string) => setEditDraft({...editDraft, content: v})} onEscape={() => { setEditingId(null); setEditDraft(null); }} minRows={6} />
                           </div>
                           <div className="flex justify-end pt-2 space-x-3">
                              <button onClick={() => {setEditingId(null); setEditDraft(null);}} className="text-[10px] font-black px-4 py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors uppercase">Abort</button>
@@ -181,7 +182,7 @@ export default function LogsPage() {
                     ) : (
                       <div className="bg-slate-900/40 p-5 rounded-xl border border-slate-800/60 shadow-inner">
                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center"><FileText size={12} className="mr-2"/> Log Data Stream</p>
-                         <p className="text-sm text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">{log.content}</p>
+                         <div className="text-sm text-slate-300 leading-relaxed font-medium rich-content" dangerouslySetInnerHTML={{ __html: log.content }} />
                       </div>
                     )}
                     

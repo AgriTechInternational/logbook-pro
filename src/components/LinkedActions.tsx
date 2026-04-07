@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, ListTodo, ClipboardCheck, ArrowRight, User, Calendar, Bell, Clock } from 'lucide-react';
+import { Plus, ListTodo, ClipboardCheck, ArrowRight, User, Calendar, Bell, Clock, Edit2, Check } from 'lucide-react';
 import { supabase, tables } from '../lib/supabase';
 
 interface LinkedActionsProps {
@@ -15,6 +15,10 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
   const [newDueDate, setNewDueDate] = useState('');
   const [newReminderDays, setNewReminderDays] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  // Edit State
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<any>(null);
 
   useEffect(() => {
     fetchLinkedActions();
@@ -87,6 +91,31 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
     fetchLinkedActions();
   };
 
+  const startEditing = (action: any) => {
+    setEditingId(action.id);
+    setEditDraft({ ...action });
+  };
+
+  const abortEditing = () => {
+    setEditingId(null);
+    setEditDraft(null);
+  };
+
+  const commitUpdate = async () => {
+    if (!editDraft) return;
+    const { id, title, assigned_to, due_date, reminder_days, status } = editDraft;
+    const { error } = await supabase.from(tables.ACTIONS).update({
+      title, assigned_to, due_date, reminder_days, status
+    }).eq('id', id);
+    if (error) {
+      console.error('Update Error:', error);
+      alert('Failed to update tactical objective: ' + error.message);
+    } else {
+      abortEditing();
+      fetchLinkedActions();
+    }
+  };
+
   const getStatusStyle = (status: string) => {
     const s = status?.toUpperCase();
     switch (s) {
@@ -123,38 +152,89 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
         {actions.length === 0 && <div className="text-[10px] font-bold text-slate-600 italic py-4 text-center border border-dashed border-slate-800 rounded-xl">No active tactical vectors linked to this protocol.</div>}
         {actions.map((action) => {
           const urgency = getUrgencyInfo(action.due_date);
+          const isEditing = editingId === action.id;
+
           return (
-            <div key={action.id} className="flex items-center justify-between bg-slate-950/40 p-3 rounded-xl border border-slate-800/40 hover:border-emerald-500/30 transition-all group shadow-sm">
-              <div className="flex items-center space-x-3 overflow-hidden">
-                <div className={`p-1.5 rounded-lg border transition-colors ${getStatusStyle(action.status)}`}>
-                   <ClipboardCheck size={14} />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className={`text-xs font-bold truncate ${action.status === 'CLOSED' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{action.title}</span>
-                  <div className="flex items-center flex-wrap gap-x-2 text-[9px] font-black text-slate-500 uppercase tracking-tighter mt-0.5">
-                     <span className="flex items-center"><User size={10} className="mr-1 text-slate-600"/> {action.assigned_to}</span>
-                     {action.due_date && (
-                        <>
-                          <span className="opacity-20">|</span>
-                          <span className="flex items-center"><Calendar size={10} className="mr-1 text-slate-600"/> {action.due_date}</span>
-                        </>
-                     )}
-                     {urgency && action.status !== 'CLOSED' && (
-                        <>
-                          <span className="opacity-20">|</span>
-                          <span className={`flex items-center ${urgency.color}`}>{urgency.icon} {urgency.label}</span>
-                        </>
-                     )}
+            <div key={action.id} className="flex flex-col bg-slate-950/40 p-3 rounded-xl border border-slate-800/40 hover:border-emerald-500/30 transition-all shadow-sm">
+              {isEditing ? (
+                <div className="space-y-3">
+                  <input 
+                    className="financial-input w-full py-1.5 text-xs font-bold" 
+                    value={editDraft.title} 
+                    onChange={e => setEditDraft({...editDraft, title: e.target.value})}
+                  />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <input 
+                      placeholder="Assignee"
+                      className="financial-input w-full py-1 text-[10px] md:col-span-2 text-xs" 
+                      value={editDraft.assigned_to} 
+                      onChange={e => setEditDraft({...editDraft, assigned_to: e.target.value})}
+                    />
+                    <input 
+                      type="date"
+                      className="financial-input w-full py-1 text-[10px] text-xs" 
+                      value={editDraft.due_date || ''} 
+                      onChange={e => setEditDraft({...editDraft, due_date: e.target.value})}
+                    />
+                    <select 
+                      className="financial-input w-full py-1 text-[10px] text-xs"
+                      value={editDraft.status}
+                      onChange={e => setEditDraft({...editDraft, status: e.target.value})}
+                    >
+                      <option value="OPEN">OPEN</option>
+                      <option value="IN_PROGRESS">IN PROGRESS</option>
+                      <option value="COMPLETED">COMPLETED</option>
+                      <option value="CLOSED">CLOSED</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end space-x-2 pt-1">
+                    <button onClick={abortEditing} className="px-3 py-1 bg-slate-800 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-700 text-slate-400">Abort</button>
+                    <button onClick={commitUpdate} className="px-3 py-1 bg-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-emerald-500 text-white flex items-center shadow-lg"><Check size={10} className="mr-1"/> Commit</button>
                   </div>
                 </div>
-              </div>
-              <button 
-                onClick={() => updateStatus(action.id, action.status)}
-                className={`p-1.5 rounded-md transition-all ${action.status === 'CLOSED' ? 'text-slate-600 hover:text-blue-400' : 'text-slate-600 hover:text-emerald-400 hover:bg-emerald-900/20'}`}
-                title={`Move to ${getNextStatus(action.status)}`}
-              >
-                <ArrowRight size={14} />
-              </button>
+              ) : (
+                <div className="flex items-center justify-between group">
+                  <div className="flex items-center space-x-3 overflow-hidden">
+                    <div className={`p-1.5 rounded-lg border transition-colors ${getStatusStyle(action.status)}`}>
+                       <ClipboardCheck size={14} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className={`text-xs font-bold truncate ${action.status === 'CLOSED' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{action.title}</span>
+                      <div className="flex items-center flex-wrap gap-x-2 text-[9px] font-black text-slate-500 uppercase tracking-tighter mt-0.5">
+                         <span className="flex items-center"><User size={10} className="mr-1 text-slate-600"/> {action.assigned_to}</span>
+                         {action.due_date && (
+                            <>
+                              <span className="opacity-20">|</span>
+                              <span className="flex items-center"><Calendar size={10} className="mr-1 text-slate-600"/> {action.due_date}</span>
+                            </>
+                         )}
+                         {urgency && action.status !== 'CLOSED' && (
+                            <>
+                              <span className="opacity-20">|</span>
+                              <span className={`flex items-center ${urgency.color}`}>{urgency.icon} {urgency.label}</span>
+                            </>
+                         )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                    <button 
+                      onClick={() => startEditing(action)}
+                      className="p-1.5 rounded-md text-slate-600 hover:text-emerald-400 hover:bg-emerald-900/20 transition-all"
+                      title="Edit objective"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button 
+                      onClick={() => updateStatus(action.id, action.status)}
+                      className={`p-1.5 rounded-md transition-all ${action.status === 'CLOSED' ? 'text-slate-600 hover:text-blue-400' : 'text-slate-600 hover:text-emerald-400 hover:bg-emerald-900/20'}`}
+                      title={`Move to ${getNextStatus(action.status)}`}
+                    >
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

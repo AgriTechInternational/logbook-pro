@@ -313,11 +313,13 @@ export default function MeetingsPage() {
                             <User size={12} className="mr-1.5"/> Logger: {m.created_by}
                          </div>
                       </div>
-
-                      <AttachmentManager collectionName="meetings" docId={m.id} attachments={m.attachments} isSuperAdmin={isSuperAdmin} />
-                      <LinkedActions parentId={m.id} parentType="meeting" userEmail={user?.email} />
                     </>
                   )}
+                  
+                  <div className="mt-6 pt-6 border-t border-slate-800/60">
+                     <AttachmentManager collectionName="meetings" docId={m.id} attachments={m.attachments} isSuperAdmin={isSuperAdmin} />
+                     <LinkedActions parentId={m.id} parentType="meeting" userEmail={user?.email} />
+                  </div>
                 </div>
               )}
             </div>

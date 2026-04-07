@@ -110,26 +110,32 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
 
   const insertTable = () => {
     editorRef.current?.focus();
-    const tableHTML = `
-      <table class="w-full text-left border-collapse border border-slate-700/50 my-2">
-        <thead>
-          <tr class="bg-slate-800/60 text-slate-300">
-            <th class="border border-slate-700/50 px-3 py-2">Header 1</th>
-            <th class="border border-slate-700/50 px-3 py-2">Header 2</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="border border-slate-700/50 px-3 py-2">Data</td>
-            <td class="border border-slate-700/50 px-3 py-2">Data</td>
-          </tr>
-          <tr>
-            <td class="border border-slate-700/50 px-3 py-2">Data</td>
-            <td class="border border-slate-700/50 px-3 py-2">Data</td>
-          </tr>
-        </tbody>
-      </table><p><br/></p>
-    `;
+    const colsInput = prompt('Number of columns:', '3');
+    const rowsInput = prompt('Number of rows:', '3');
+    
+    if (!colsInput || !rowsInput) return; // User cancelled
+    
+    const cols = parseInt(colsInput) || 3;
+    const rows = parseInt(rowsInput) || 3;
+
+    let tableHTML = '<table class="w-full text-left border-collapse border border-slate-700/50 my-2"><thead><tr class="bg-slate-800/60 text-slate-300">';
+    
+    // Generate headers
+    for (let c = 0; c < cols; c++) {
+      tableHTML += `<th class="border border-slate-700/50 px-3 py-2">Header ${c + 1}</th>`;
+    }
+    tableHTML += '</tr></thead><tbody>';
+    
+    // Generate body rows
+    for (let r = 0; r < rows; r++) {
+      tableHTML += '<tr>';
+      for (let c = 0; c < cols; c++) {
+        tableHTML += `<td class="border border-slate-700/50 px-3 py-2">Data</td>`;
+      }
+      tableHTML += '</tr>';
+    }
+    tableHTML += '</tbody></table><p><br/></p>';
+    
     document.execCommand('insertHTML', false, tableHTML.trim());
     updateActiveFormats();
     if (editorRef.current) onChange(editorRef.current.innerHTML);

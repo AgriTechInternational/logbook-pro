@@ -110,7 +110,12 @@ export default function SpreadsheetModal({ initialData, onSave, onCancel }: Spre
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 md:p-8 animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 md:p-8 animate-in fade-in duration-200"
+      onKeyDown={e => e.stopPropagation()}
+      onMouseDown={e => e.stopPropagation()}
+      onWheel={e => e.stopPropagation()}
+    >
        <div className="bg-slate-900 border border-slate-700 w-full max-w-7xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
           <div className="flex justify-between items-center p-5 border-b border-slate-800 bg-slate-950/80 shadow-sm relative z-10">
              <div className="flex items-center space-x-3">
@@ -135,6 +140,10 @@ export default function SpreadsheetModal({ initialData, onSave, onCancel }: Spre
                 .jexcel tbody tr td { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; font-size: 13px !important; color: #334155 !important; }
                 .jexcel thead tr td { background-color: #f1f5f9 !important; font-weight: 800 !important; font-size: 12px !important; text-transform: uppercase; color: #475569 !important; }
                 .jexcel_toolbar { background-color: #f8fafc !important; border-bottom: 2px solid #e2e8f0 !important; }
+                /* Fix z-index for jsuites absolute dropdowns */
+                .jcontextmenu { z-index: 999999 !important; }
+                .jdropdown { z-index: 999999 !important; }
+                .jcolor { z-index: 999999 !important; }
              `}</style>
              <div className="bg-white min-h-full rounded-b-xl overflow-hidden p-6">
                 <div ref={jspreadsheetRef} />

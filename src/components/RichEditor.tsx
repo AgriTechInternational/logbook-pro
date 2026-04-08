@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Bold, Italic, Underline, Strikethrough, Highlighter, RemoveFormatting, List, ListOrdered, Heading1, Heading2, Heading3, Quote, Code, AlignLeft, AlignCenter, Undo, Redo, Link as LinkIcon, Table } from 'lucide-react';
-import SpreadsheetModal from './SpreadsheetModal';
+import { Bold, Italic, Underline, Strikethrough, Highlighter, RemoveFormatting, List, ListOrdered, Heading1, Heading2, Heading3, Quote, Code, AlignLeft, AlignCenter, Undo, Redo, Link as LinkIcon, Table, Calculator } from 'lucide-react';
 
 // ── Word vocabulary (same as SmartTextarea) ──────────────────────────────
 const DOMAIN_WORDS = [
@@ -66,9 +65,6 @@ const HIGHLIGHT_COLOR = '#fde047'; // yellow-300
 
 export default function RichEditor({ value, onChange, onEscape, placeholder, minRows = 5 }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [showSpreadsheet, setShowSpreadsheet] = useState(false);
-  const [spreadsheetInitial, setSpreadsheetInitial] = useState<string[][] | undefined>(undefined);
-  const [editingTableObj, setEditingTableObj] = useState<HTMLTableElement | null>(null);
   const [suggestions, setSuggestions]   = useState<string[]>([]);
   const [activeIdx, setActiveIdx]       = useState(0);
   const [showSugg, setShowSugg]         = useState(false);
@@ -112,63 +108,148 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
     if (editorRef.current) onChange(editorRef.current.innerHTML);
   };
 
-  // Attach double-click listener to intercept cell editing and open Excel Modal
-  useEffect(() => {
-    const el = editorRef.current;
-    if (!el) return;
-    const handleDblClick = (e: MouseEvent) => {
-      let target = e.target as HTMLElement | null;
-      while (target && target !== el) {
-        if (target.tagName === 'TABLE' && target.classList.contains('excel-table')) {
-           e.preventDefault();
-           const table = target as HTMLTableElement;
-           const grid: string[][] = [];
-           const tbody = table.querySelector('tbody');
-           if (tbody) {
-               const trs = tbody.querySelectorAll('tr');
-               trs.forEach(tr => {
-                  const rData: string[] = [];
-                  const tds = tr.querySelectorAll('td');
-                  tds.forEach(td => {
-                     const rawAttr = td.getAttribute('data-raw');
-                     if (rawAttr) {
-                         try { rData.push(decodeURIComponent(atob(rawAttr))); }
-                         catch(e) { rData.push(td.innerText); }
-                     } else {
-                         rData.push(td.innerText);
-                     }
-                  });
-                  grid.push(rData);
-               });
-           }
-           setEditingTableObj(table);
-           setSpreadsheetInitial(grid);
-           setShowSpreadsheet(true);
-           return;
-        }
-        target = target.parentElement;
-      }
-    };
-    el.addEventListener('dblclick', handleDblClick);
-    return () => el.removeEventListener('dblclick', handleDblClick);
-  }, []);
+  const insertTable = () => {
+    editorRef.current?.focus();
+    const colsInput = prompt('Number of columns (Max 26):', '3');
+    const rowsInput = prompt('Number of rows:', '5');
+    
+    if (!colsInput || !rowsInput) return; // User cancelled
+    
+    let cols = parseInt(colsInput) || 3;
+    let rows = parseInt(rowsInput) || 5;
+    if (cols > 26) cols = 26; // limit for A-Z
 
-  const openSpreadsheet = () => {
-    setSpreadsheetInitial(undefined);
-    setEditingTableObj(null);
-    setShowSpreadsheet(true);
+    let tableHTML = '<table class="w-full text-left border-collapse border border-slate-700/50 my-2 excel-sim">';
+    
+    // Header row
+    tableHTML += '<thead><tr class="bg-slate-800/80 text-slate-400 select-none">';
+    tableHTML += '<th class="border border-slate-700/50 px-2 py-1 w-10 text-center font-bold text-xs bg-slate-900/60"></th>';
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (let c = 0; c < cols; c++) {
+      tableHTML += `<th class="border border-slate-700/50 px-3 py-1 font-bold text-xs text-center uppercase tracking-widest">${letters[c]}</th>`;
+    }
+    tableHTML += '</tr></thead><tbody>';
+    
+    // Body rows
+    for (let r = 0; r < rows; r++) {
+      tableHTML += '<tr>';
+      tableHTML += `<td class="border border-slate-700/50 px-2 py-1 text-center font-bold text-xs bg-slate-900/60 text-slate-400 select-none w-10">${r + 1}</td>`;
+      for (let c = 0; c < cols; c++) {
+        tableHTML += `<td class="border border-slate-700/50 px-3 py-2 text-sm text-slate-200"></td>`;
+      }
+      tableHTML += '</tr>';
+    }
+    tableHTML += '</tbody></table><p><br/></p>';
+    
+    document.execCommand('insertHTML', false, tableHTML.trim());
+    updateActiveFormats();
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
   };
 
-  const handleSpreadsheetSave = (html: string) => {
-    if (editingTableObj && editorRef.current) {
-        editingTableObj.outerHTML = html;
-        if (editorRef.current) onChange(editorRef.current.innerHTML);
-    } else {
-        editorRef.current?.focus();
-        document.execCommand('insertHTML', false, html);
-        if (editorRef.current) onChange(editorRef.current.innerHTML);
+  const evaluateTableFormulas = () => {
+    if (!editorRef.current) return;
+    const tables = editorRef.current.querySelectorAll('table.excel-sim'); // compute only excel-sim
+    let modified = false;
+
+    tables.forEach(tableNode => {
+      const table = tableNode as HTMLTableElement;
+      const rows = table.rows;
+      const grid: string[][] = [];
+      for (let r = 0; r < rows.length; r++) {
+        const cells = rows[r].cells;
+        const rowData: string[] = [];
+        for (let c = 0; c < cells.length; c++) {
+          rowData.push(cells[c].innerText.trim());
+        }
+        grid.push(rowData);
+      }
+
+      // Maps A1 -> c=1, r=1 perfectly avoiding header row/col
+      const parseRef = (ref: string) => {
+        const match = ref.match(/([A-Z]+)(\d+)/);
+        if (!match) return null;
+        let c = 0;
+        for (let i = 0; i < match[1].length; i++) {
+          c = c * 26 + (match[1].charCodeAt(i) - 64);
+        }
+        const r = parseInt(match[2], 10);
+        return {r, c};
+      };
+
+      const getVal = (ref: string) => {
+        const coords = parseRef(ref);
+        if (!coords) return 0;
+        const {r, c} = coords;
+        if (grid[r] && grid[r][c]) {
+           const val = parseFloat(grid[r][c].replace(/[^\d.-]/g, ''));
+           return isNaN(val) ? 0 : val;
+        }
+        return 0;
+      };
+
+      const getRange = (ref1: string, ref2: string) => {
+         const topL = parseRef(ref1);
+         const botR = parseRef(ref2);
+         if (!topL || !botR) return [];
+         let vals: number[] = [];
+         for(let r = Math.min(topL.r, botR.r); r <= Math.max(topL.r, botR.r); r++) {
+           for(let c = Math.min(topL.c, botR.c); c <= Math.max(topL.c, botR.c); c++) {
+               if (grid[r] && grid[r][c]) {
+                 const val = parseFloat(grid[r][c].replace(/[^\d.-]/g, ''));
+                 vals.push(isNaN(val) ? 0 : val);
+               }
+           }
+         }
+         return vals;
+      };
+
+      // Skip row 0 (headers) and col 0 (labels)
+      for (let r = 1; r < rows.length; r++) {
+        const cells = rows[r].cells;
+        for (let c = 1; c < cells.length; c++) {
+          const text = grid[r][c];
+          if (text.startsWith('=') && text.length > 1) {
+            let result = text;
+            try {
+              let formula = text.substring(1).toUpperCase();
+              
+              formula = formula.replace(/SUM\(([A-Z]+\d+):([A-Z]+\d+)\)/g, (_m, p1, p2) => {
+                  const arr = getRange(p1, p2);
+                  return (arr.reduce((a,b)=>a+b,0)).toString();
+              });
+              
+              formula = formula.replace(/AVG\(([A-Z]+\d+):([A-Z]+\d+)\)/g, (_m, p1, p2) => {
+                  const arr = getRange(p1, p2);
+                  return arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toString() : '0';
+              });
+
+              formula = formula.replace(/[A-Z]+\d+/g, (match) => {
+                  return getVal(match).toString();
+              });
+
+              if (/[^0-9.+\-*/()\s]/.test(formula)) {
+                 throw new Error('Invalid code');
+              }
+
+              const computed = new Function('return ' + formula)();
+              result = typeof computed === 'number' ? parseFloat(computed.toFixed(4)).toString() : '#ERROR';
+              
+              cells[c].innerText = result;
+              grid[r][c] = result;
+              modified = true;
+            } catch (e) {
+              cells[c].innerText = '#ERROR';
+              grid[r][c] = '#ERROR';
+              modified = true;
+            }
+          }
+        }
+      }
+    });
+
+    if (modified && editorRef.current) {
+      onChange(editorRef.current.innerHTML);
     }
-    setShowSpreadsheet(false);
   };
 
   const handleLink = () => {
@@ -301,7 +382,8 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
         {/* Extras: Quote & Code, Table & Clear */}
         <ToolBtn title="Blockquote" active={activeFormats.quote} onClick={() => execBlock('BLOCKQUOTE')}><Quote size={13} /></ToolBtn>
         <ToolBtn title="Code Block" active={activeFormats.code} onClick={() => execBlock('PRE')}><Code size={13} /></ToolBtn>
-        <ToolBtn title="Insert Excel Sheet" active={false} onClick={openSpreadsheet}><Table size={13} className="text-emerald-400" /></ToolBtn>
+        <ToolBtn title="Insert Table" active={false} onClick={insertTable}><Table size={13} /></ToolBtn>
+        <ToolBtn title="Calculate Tables" active={false} onClick={evaluateTableFormulas}><Calculator size={13} className="text-emerald-400" /></ToolBtn>
         <ToolBtn title="Clear formatting" active={false} onClick={() => execCmd('removeFormat')}><RemoveFormatting size={13} /></ToolBtn>
 
         <div className="ml-auto text-[9px] text-slate-500 font-black uppercase tracking-widest hidden sm:block pl-2 shrink-0">
@@ -351,14 +433,6 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
           </div>
         )}
       </div>
-
-      {showSpreadsheet && (
-        <SpreadsheetModal 
-          initialData={spreadsheetInitial}
-          onSave={handleSpreadsheetSave}
-          onCancel={() => setShowSpreadsheet(false)}
-        />
-      )}
     </div>
   );
 }

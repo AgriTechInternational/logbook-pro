@@ -148,5 +148,6 @@ body {
 .rich-content td {
   padding: 0.75em 1em;
   border: 1px solid #334155;
+  min-width: 100px;
 }
 

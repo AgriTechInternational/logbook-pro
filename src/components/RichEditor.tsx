@@ -135,7 +135,7 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
       tableHTML += '<tr>';
       tableHTML += `<td class="border border-slate-700/50 px-2 py-1 text-center font-bold text-xs bg-slate-900/60 text-slate-400 select-none w-10">${r + 1}</td>`;
       for (let c = 0; c < cols; c++) {
-        tableHTML += `<td class="border border-slate-700/50 px-3 py-2 text-sm text-slate-200"></td>`;
+        tableHTML += `<td class="border border-slate-700/50 px-3 py-2 text-sm text-slate-200" data-cell="${letters[c]}${r + 1}"></td>`;
       }
       tableHTML += '</tr>';
     }
@@ -250,6 +250,34 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
     if (modified && editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
+  };
+
+  const handleEditorMouseDown = (e: React.MouseEvent) => {
+     const target = e.target as HTMLElement;
+     if (target.tagName !== 'TD') return;
+     
+     const cellId = target.getAttribute('data-cell');
+     if (!cellId) return;
+
+     // Grab current selection to see if we were typing a formula
+     const sel = window.getSelection();
+     if (!sel || !sel.rangeCount) return;
+     
+     const range = sel.getRangeAt(0);
+     const focusNode = range.startContainer;
+     const focusTd = focusNode.nodeType === 3 ? focusNode.parentElement?.closest('td') : (focusNode as HTMLElement)?.closest('td');
+
+     if (focusTd && focusTd !== target && focusTd.hasAttribute('data-cell')) {
+         const text = focusTd.innerText.trim();
+         // If we are currently typing a formula in the focusTd
+         if (text.startsWith('=')) {
+             e.preventDefault(); // Stop blur and focus shifting!
+             
+             // Inject the cell ID directly into the text at the caret position using document rules
+             document.execCommand('insertText', false, cellId);
+             if (editorRef.current) onChange(editorRef.current.innerHTML);
+         }
+     }
   };
 
   const handleLink = () => {
@@ -399,6 +427,7 @@ export default function RichEditor({ value, onChange, onEscape, placeholder, min
           suppressContentEditableWarning
           onInput={handleInput}
           onKeyDown={handleKeyDown}
+          onMouseDown={handleEditorMouseDown}
           onKeyUp={updateActiveFormats}
           onMouseUp={updateActiveFormats}
           onBlur={handleBlur}

@@ -93,11 +93,6 @@ export default function AnomaliesPage() {
     setExpandedIds(newExpanded);
   };
 
-  const updateStatus = async (id: string, currentStatus: string) => {
-    const nextStatus = currentStatus === 'OPEN' ? 'INVESTIGATING' : currentStatus === 'INVESTIGATING' ? 'RESOLVED' : 'OPEN';
-    await supabase.from(tables.ANOMALIES).update({ status: nextStatus }).eq('id', id);
-  };
-
   const updateAnomaly = async (id: string, updates: any) => {
     const { error } = await supabase.from(tables.ANOMALIES).update(updates).eq('id', id);
     if (error) alert("Failed to update: " + error.message);
@@ -122,7 +117,7 @@ export default function AnomaliesPage() {
     <div className="pb-12 animate-in text-slate-200">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white tracking-tight flex items-center drop-shadow-sm">
-          <AlertTriangle className="mr-3 text-rose-400" size={28} /> Thread Vectors
+          <AlertTriangle className="mr-3 text-rose-400" size={28} /> Anomaly Title
         </h2>
         <button onClick={() => setIsAdding(!isAdding)} className="p-3 bg-rose-600 hover:bg-rose-500 text-white rounded-[14px] transition-all shadow-lg active:scale-95 border border-rose-400/30">
           <Plus size={20} />
@@ -133,7 +128,7 @@ export default function AnomaliesPage() {
         <form onSubmit={handleCreate} className="financial-card p-6 mb-8 border-rose-500/30 animate-in slide-in-from-top-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Anomaly Signature</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Anomaly Title</label>
               <input required className="financial-input w-full" placeholder="Sensor array malfunction..." value={newTitle} onChange={e => setNewTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
@@ -152,7 +147,7 @@ export default function AnomaliesPage() {
             {/* Proactive Action Row */}
             <div className="md:col-span-2 pt-4 mt-2 border-t border-slate-800/60">
                <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4 flex items-center">
-                 <Plus size={10} className="mr-2"/> Initiate Proactive Tactical Objective
+                 <Plus size={10} className="mr-2"/> Initiate Proactive Action
                </h4>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -179,6 +174,8 @@ export default function AnomaliesPage() {
           const isExpanded = expandedIds.has(a.id);
           const isEditing = editingId === a.id;
           const colors = getSeverityColor(a.severity);
+          const generationNumber = `AR-${a.id.slice(0, 4).toUpperCase()}`;
+          const dateRaised = new Date(a.created_at || Date.now()).toLocaleDateString('en-GB');
 
           return (
             <div key={a.id} className={`financial-card group transition-all duration-300 ${isExpanded ? `${colors.border} ${colors.glow}` : 'hover:border-slate-700/80'}`}>
@@ -206,6 +203,10 @@ export default function AnomaliesPage() {
                        <span className={`text-[9px] font-black uppercase tracking-widest ${colors.text}`}>{a.severity} CLEARANCE</span>
                        <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest truncate max-w-[120px]">{a.reported_by}</span>
+                       <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
+                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{generationNumber}</span>
+                       <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
+                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{dateRaised}</span>
                     </div>
                   </div>
                 </div>
@@ -215,9 +216,9 @@ export default function AnomaliesPage() {
                        <Edit2 size={16} />
                      </button>
                    )}
-                   <button onClick={(e) => { e.stopPropagation(); updateStatus(a.id, a.status); }} className={`flex items-center px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${a.status === 'RESOLVED' ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-rose-500/50 hover:text-rose-300'}`}>
+                   <span className={`flex items-center px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${a.status === 'RESOLVED' ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
                       {a.status.replace('_', ' ')}
-                   </button>
+                   </span>
                    {isSuperAdmin && !isEditing && (
                      <button onClick={(e) => { e.stopPropagation(); deleteAnomaly(a.id); }} className="p-2 text-slate-700 hover:text-rose-500 transition-colors"><Trash2 size={16} /></button>
                    )}

@@ -111,7 +111,7 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
     }).eq('id', id);
     if (error) {
       console.error('Update Error:', error);
-      alert('Failed to update tactical objective: ' + error.message);
+      alert('Failed to update action: ' + error.message);
     } else {
       abortEditing();
       fetchLinkedActions();
@@ -147,12 +147,12 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
     <div className="mt-6 pt-6 border-t border-slate-800/60">
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center">
-          <ListTodo size={12} className="mr-2"/> Linked Tactical Objectives
+          <ListTodo size={12} className="mr-2"/> Linked Actions
         </h4>
       </div>
 
       <div className="space-y-2 mb-6">
-        {actions.length === 0 && <div className="text-[10px] font-bold text-slate-600 italic py-4 text-center border border-dashed border-slate-800 rounded-xl">No active tactical vectors linked to this protocol.</div>}
+        {actions.length === 0 && <div className="text-[10px] font-bold text-slate-600 italic py-4 text-center border border-dashed border-slate-800 rounded-xl">No active actions linked to this protocol.</div>}
         {actions.map((action) => {
           const urgency = getUrgencyInfo(action.due_date);
           const isEditing = editingId === action.id;
@@ -225,7 +225,7 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
                     <button 
                       onClick={() => startEditing(action)}
                       className="p-1.5 rounded-md text-slate-600 hover:text-emerald-400 hover:bg-emerald-900/20 transition-all"
-                      title="Edit objective"
+                      title="Edit action"
                     >
                       <Edit2 size={14} />
                     </button>
@@ -245,11 +245,11 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
       </div>
 
       <form onSubmit={handleQuickAdd} className="space-y-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800/40">
-        <h5 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">New Objective Injection</h5>
+        <h5 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">New Action Injection</h5>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <input 
             className="financial-input w-full py-2 text-xs font-bold placeholder:text-slate-600" 
-            placeholder="Operational Objective Title..."
+            placeholder="Operational Action Title..."
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             required
@@ -292,7 +292,7 @@ export default function LinkedActions({ parentId, parentType, userEmail }: Linke
           className="w-full flex items-center justify-center space-x-2 py-3 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 shadow-xl transition-all disabled:opacity-50 border border-emerald-400/20 active:scale-95"
           disabled={!newTitle.trim() || loading}
         >
-          <Plus size={14} /> <span>Initialize Tactical Objective</span>
+          <Plus size={14} /> <span>Initialize Action</span>
         </button>
       </form>
     </div>

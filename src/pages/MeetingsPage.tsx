@@ -10,6 +10,9 @@ import LinkedActions from '../components/LinkedActions';
 
 
 export default function MeetingsPage() {
+  const containsArabic = (text: string) => /[\u0600-\u06FF]/.test(text || '');
+  const getLangClass = (text: string) => containsArabic(text) ? 'font-arabic text-right' : '';
+
   const [meetings, setMeetings] = useState<any[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -158,11 +161,11 @@ export default function MeetingsPage() {
             {/* Proactive Action Row */}
             <div className="md:col-span-2 pt-4 mt-2 border-t border-slate-800/60">
                <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4 flex items-center">
-                 <Plus size={10} className="mr-2"/> Initialize High-Impact Tactical Objective
+                 <Plus size={10} className="mr-2"/> Initialize High-Impact Action
                </h4>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Objective Title</label>
+                    <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1">Action Title</label>
                     <input className="financial-input w-full py-2 text-xs" placeholder="Draft technical specs..." value={initialActionTitle} onChange={e => setInitialActionTitle(e.target.value)} />
                   </div>
                   <div className="space-y-2">
@@ -205,7 +208,7 @@ export default function MeetingsPage() {
                          onClick={e => e.stopPropagation()}
                        />
                     ) : (
-                       <h3 className="text-[15px] font-bold text-white tracking-tight leading-none mb-1">{m.title}</h3>
+                       <h3 className={`text-[15px] font-bold text-white tracking-tight leading-none mb-1 ${getLangClass(m.title)}`}>{m.title}</h3>
                     )}
                     <div className="flex items-center space-x-3 text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
                       <span>{m.date}</span>
@@ -292,11 +295,11 @@ export default function MeetingsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
                           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center"><FileText size={12} className="mr-2"/> Briefing Agenda</p>
-                          <div className="text-sm text-slate-300 leading-relaxed font-medium bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 shadow-inner rich-content" dangerouslySetInnerHTML={{ __html: m.agenda }} />
+                          <div className={`text-sm text-slate-300 leading-relaxed font-medium bg-slate-900/40 p-4 rounded-xl border border-slate-800/60 shadow-inner rich-content ${getLangClass(m.agenda)}`} dangerouslySetInnerHTML={{ __html: m.agenda }} />
                         </div>
                         <div className="space-y-3">
                           <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center"><ArrowRightCircle size={12} className="mr-2"/> Way Forward</p>
-                          <div className="text-sm text-emerald-100/80 leading-relaxed font-medium bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20 shadow-inner rich-content" dangerouslySetInnerHTML={{ __html: m.way_forward }} />
+                          <div className={`text-sm text-emerald-100/80 leading-relaxed font-medium bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20 shadow-inner rich-content ${getLangClass(m.way_forward)}`} dangerouslySetInnerHTML={{ __html: m.way_forward }} />
                         </div>
                       </div>
 

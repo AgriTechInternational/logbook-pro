@@ -39,7 +39,7 @@ export default function AttachmentManager({ collectionName, docId, attachments =
         // Find correct table name from the mapping
         let tableName = '';
         if (collectionName === 'meetings') tableName = tables.MEETINGS;
-        else if (collectionName === 'operation_logs') tableName = tables.LOGS;
+        else if (collectionName === 'operation_logs' || collectionName === 'logs') tableName = tables.LOGS;
         else if (collectionName === 'actions') tableName = tables.ACTIONS;
         else if (collectionName === 'anomalies') tableName = tables.ANOMALIES;
         else if (collectionName === 'milestones') tableName = tables.MILESTONES;
@@ -64,7 +64,7 @@ export default function AttachmentManager({ collectionName, docId, attachments =
     
     let tableName = '';
     if (collectionName === 'meetings') tableName = tables.MEETINGS;
-    else if (collectionName === 'operation_logs') tableName = tables.LOGS;
+    else if (collectionName === 'operation_logs' || collectionName === 'logs') tableName = tables.LOGS;
     else if (collectionName === 'actions') tableName = tables.ACTIONS;
     else if (collectionName === 'anomalies') tableName = tables.ANOMALIES;
     else if (collectionName === 'milestones') tableName = tables.MILESTONES;
